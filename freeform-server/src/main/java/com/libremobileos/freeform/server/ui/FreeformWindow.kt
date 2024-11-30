@@ -167,14 +167,14 @@ class FreeformWindow(
                 startApp()
             }
 
-            val rightView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "rightView")
-            if (null == rightView) {
+            val arrowBack = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "arrowBack")
+            if (null == arrowBack) {
                 Slog.e(TAG, "right&rightScale view is null")
-                destroy("onDisplayAdd:rightView is null")
+                destroy("onDisplayAdd:backView is null")
                 return@post
             }
-            rightView.setOnClickListener(RightViewClickListener(displayId))
-            rightView.setOnLongClickListener(RightViewLongClickListener(this))
+            arrowBack.setOnClickListener(RightViewClickListener(displayId))
+            arrowBack.setOnLongClickListener(RightViewLongClickListener(this))
         }
     }
 
@@ -279,14 +279,10 @@ class FreeformWindow(
         val moveTouchListener = MoveTouchListener(this)
         topBarView.setOnTouchListener(moveTouchListener)
         middleView.setOnTouchListener(moveTouchListener)
-        val leftView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "leftView") ?: return false
+        val minimizeView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "minimizeView") ?: return false
         val leftScaleView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "leftScaleView") ?: return false
         val rightScaleView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "rightScaleView") ?: return false
-        leftView.setOnClickListener(LeftViewClickListener(this))
-        if (!(appConfig.packageName == SIDEBAR_PACKAGE && appConfig.activityName == ALL_APP_ACTIVITY)) {
-            // Sidebar all apps activity should not be fullscreen.
-            leftView.setOnLongClickListener(LeftViewLongClickListener(this))
-        }
+        minimizeView.setOnClickListener { handler.post { handleHangUp() } }
         leftScaleView.setOnTouchListener(ScaleTouchListener(this, false))
         rightScaleView.setOnTouchListener(ScaleTouchListener(this))
 
