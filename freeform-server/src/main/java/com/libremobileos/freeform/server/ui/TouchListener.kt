@@ -93,6 +93,8 @@ class ScaleTouchListener(private val window: FreeformWindow, private val isRight
             MotionEvent.ACTION_DOWN -> {
                 startX = event.rawX
                 startY = event.rawY
+                window.freeformRootView.visibility = View.INVISIBLE
+                window.veilView.visibility = View.VISIBLE
             }
             MotionEvent.ACTION_MOVE -> {
                 window.freeformRootView.layoutParams = window.freeformRootView.layoutParams.apply {
@@ -121,7 +123,19 @@ class ScaleTouchListener(private val window: FreeformWindow, private val isRight
                         window.freeformConfig.densityDpi
                     )
                     window.freeformView.surfaceTexture!!.setDefaultBufferSize(window.freeformConfig.freeformWidth, window.freeformConfig.freeformHeight)
+                    // Delay the unveiling until after the scaling is complete
+                    window.handler.postDelayed({
+                        window.freeformRootView.visibility = View.VISIBLE
+                        window.veilView.visibility = View.GONE
+                    }, 250)
+                } else {
+                    window.freeformRootView.visibility = View.VISIBLE
+                    window.veilView.visibility = View.GONE
                 }
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                window.freeformRootView.visibility = View.VISIBLE
+                window.veilView.visibility = View.GONE
             }
         }
         return true

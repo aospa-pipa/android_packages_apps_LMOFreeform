@@ -46,12 +46,13 @@ class FreeformWindow(
     val windowParams = WindowManager.LayoutParams()
     private val resourceHolder = RemoteResourceHolder(context, FREEFORM_PACKAGE)
     lateinit var freeformLayout: ViewGroup
-    lateinit var freeformRootView: ViewGroup
+    public lateinit var freeformRootView: ViewGroup
     lateinit var freeformView: TextureView
     private lateinit var topBarView: View
     private lateinit var bottomBarView: View
     private lateinit var minimizedIconContainer: View
     private lateinit var minimizedIconImage: ImageView
+    lateinit var veilView: ViewGroup
     private var displayId = Display.INVALID_DISPLAY
     var defaultDisplayWidth = context.resources.displayMetrics.widthPixels
     var defaultDisplayHeight = context.resources.displayMetrics.heightPixels
@@ -275,6 +276,7 @@ class FreeformWindow(
         val tmpFreeformLayout = resourceHolder.getLayout(FREEFORM_LAYOUT)!! ?: return false
         freeformLayout = tmpFreeformLayout
         freeformRootView = resourceHolder.getLayoutChildViewByTag<FrameLayout>(freeformLayout, "freeform_root") ?: return false
+        veilView = resourceHolder.getLayoutChildViewByTag<FrameLayout>(freeformLayout, "veilView") ?: return false
         topBarView = resourceHolder.getLayoutChildViewByTag(freeformLayout, "topBarView") ?: return false
         bottomBarView = resourceHolder.getLayoutChildViewByTag(freeformLayout, "bottomBarView") ?: return false
         minimizedIconContainer = resourceHolder.getLayoutChildViewByTag(freeformLayout, "minimizedIconContainer") ?: return false
@@ -289,6 +291,8 @@ class FreeformWindow(
         val pinView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "pinView") ?: return false
         val leftScaleView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "leftScaleView") ?: return false
         val rightScaleView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "rightScaleView") ?: return false
+        val veilAppIconView = resourceHolder.getLayoutChildViewByTag<ImageView>(freeformLayout, "veilAppIcon") ?: return false
+        veilAppIconView.setImageDrawable(appIcon)
         appIconView.setImageDrawable(appIcon)
         packageNameView.text = appPackageName
         minimizeView.setOnClickListener(LeftViewClickListener(this))
