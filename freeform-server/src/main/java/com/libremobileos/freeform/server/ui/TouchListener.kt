@@ -49,37 +49,32 @@ class LeftViewClickListener(private val window: FreeformWindow) : View.OnClickLi
 }
 
 /**
- * to full screen
+ * maximize freeform screen
  */
-class LeftViewLongClickListener(private val window: FreeformWindow): View.OnLongClickListener {
+class MaximizeClickListener(private val window: FreeformWindow): View.OnClickListener {
     companion object {
         private const val TAG = "LMOFreeform/TouchListener"
     }
-    override fun onLongClick(v: View): Boolean {
+    override fun onClick(v: View) {
         if (null != window.freeformTaskStackListener) {
             if (window.freeformTaskStackListener!!.taskId == -1) {
                 Slog.e(TAG, "taskId is -1, can`t move")
-                return true
+                return
             }
             runCatching { SystemServiceHolder.activityTaskManager.moveRootTaskToDisplay(window.freeformTaskStackListener!!.taskId, Display.DEFAULT_DISPLAY) }
         }
-        // not required because taskStackListener's onTaskDisplayChanged() will be called
-        // which in turn calls destroy()
-        // window.destroy("MaximizeButtonClickListener")
-        return true
     }
 }
 
 /**
- * change orientation
+ * Pin freeform
  */
-class RightViewLongClickListener(private val window: FreeformWindow): View.OnLongClickListener {
-    override fun onLongClick(v: View): Boolean {
+class PinClickListener(private val window: FreeformWindow): View.OnClickListener {
+    override fun onClick(v: View) {
         window.handler.post {
             // hangup
             window.handleHangUp()
         }
-        return true
     }
 }
 
