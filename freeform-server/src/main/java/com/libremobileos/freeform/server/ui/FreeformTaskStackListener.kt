@@ -145,6 +145,10 @@ class FreeformTaskStackListener(
 
     }
 
+    override fun onRecentTaskRemovedForAddTask(taskId: Int) {
+
+    }
+
     override fun onTaskFocusChanged(taskId: Int, focused: Boolean) {
 
     }
