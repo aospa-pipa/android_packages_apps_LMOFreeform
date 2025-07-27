@@ -68,7 +68,8 @@ public class LMOFreeformDisplayAdapter extends DisplayAdapter {
         synchronized (getSyncRoot()) {
             IBinder appToken = callback.asBinder();
             FreeformFlags flags = new FreeformFlags(secure, ownContentOnly, shouldShowSystemDecorations);
-            IBinder displayToken = DisplayControl.createVirtualDisplay(name, flags.mSecure, UNIQUE_ID_PREFIX + name, refreshRate);
+            IBinder displayToken = DisplayControl.createVirtualDisplay(name, flags.mSecure,
+                    true /* optimizeForPower */, UNIQUE_ID_PREFIX + name, refreshRate);
             FreeformDisplayDevice device = new FreeformDisplayDevice(displayToken, UNIQUE_ID_PREFIX + name, width, height, densityDpi,
                     refreshRate, presentationDeadlineNanos,
                     flags, surface, new Callback(callback, mHandler), callback.asBinder());
@@ -203,14 +204,19 @@ public class LMOFreeformDisplayAdapter extends DisplayAdapter {
         }
 
         @Override
-        public void performTraversalLocked(SurfaceControl.Transaction t) {
-            if ((mPendingChanges & PENDING_RESIZE) != 0) {
-                t.setDisplaySize(getDisplayTokenLocked(), mWidth, mHeight);
-            }
+        public void configureSurfaceLocked(SurfaceControl.Transaction t) {
             if ((mPendingChanges & PENDING_SURFACE_CHANGE) != 0) {
                 setSurfaceLocked(t, mSurface);
             }
-            mPendingChanges = 0;
+            mPendingChanges &= ~PENDING_SURFACE_CHANGE;
+        }
+
+        @Override
+        public void configureDisplaySizeLocked(SurfaceControl.Transaction t) {
+            if ((mPendingChanges & PENDING_RESIZE) != 0) {
+                t.setDisplaySize(getDisplayTokenLocked(), mWidth, mHeight);
+            }
+            mPendingChanges &= ~PENDING_RESIZE;
         }
 
         @Override
