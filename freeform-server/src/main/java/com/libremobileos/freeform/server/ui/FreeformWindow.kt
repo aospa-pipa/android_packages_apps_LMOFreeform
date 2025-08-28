@@ -85,6 +85,8 @@ class FreeformWindow(
         private const val FREEFORM_PACKAGE = "com.libremobileos.freeform"
         private const val FREEFORM_LAYOUT = "view_freeform"
         private const val WINDOW_DESTROY_WAIT_MS = 10000L
+        private const val SIDEBAR_PACKAGE = "com.libremobileos.sidebar"
+        private const val ALL_APP_ACTIVITY = "com.libremobileos.sidebar.ui.all_app.AllAppActivity"
     }
 
     init {
@@ -297,7 +299,10 @@ class FreeformWindow(
             return false
         }
         leftView.setOnClickListener(LeftViewClickListener(this))
-        leftView.setOnLongClickListener(LeftViewLongClickListener(this))
+        if (!(appConfig.packageName == SIDEBAR_PACKAGE && appConfig.activityName == ALL_APP_ACTIVITY)) {
+            // Sidebar all apps activity should not be fullscreen.
+            leftView.setOnLongClickListener(LeftViewLongClickListener(this))
+        }
         leftScaleView.setOnTouchListener(ScaleTouchListener(this, false))
         rightScaleView.setOnTouchListener(ScaleTouchListener(this))
 
