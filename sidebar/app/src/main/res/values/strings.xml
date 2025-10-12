@@ -9,6 +9,40 @@
     <string name="sidebar_settings_description">Open sidebar settings</string>
     <string name="sidebar_predicted_apps">Show app suggestions</string>
     <string name="sidebar_predicted_apps_summary">Show upto 6 suggested apps below pinned apps</string>
+
+    <!-- Sidebar customization -->
+    <string name="sidebar_customization_title">Sidebar customization</string>
+
+    <!-- Sections -->
+    <string name="sidebar_section_slider">Slider settings</string>
+    <string name="sidebar_section_layout">Layout settings</string>
+    <string name="sidebar_section_visual">Visual effects</string>
+    <string name="sidebar_section_miscellaneous">Miscellaneous</string>
+
+    <!-- Slider settings -->
+    <string name="sidebar_transparency_value">Slider transparency: %1$.2f</string>
+    <string name="sidebar_length_value">Slider length: %1$d</string>
+    <string name="sidebar_width_value">Slider width: %1$d</string>
+    <string name="sidebar_position_label">Slider position</string>
+    <string name="sidebar_left">Left</string>
+    <string name="sidebar_right">Right</string>
+
+    <!-- Layout settings -->
+    <plurals name="sidebar_columns_value">
+        <item quantity="one">%1$d column</item>
+        <item quantity="other">%1$d columns</item>
+    </plurals>
+    <string name="sidebar_icon_size_value">Icon size: %1$d dp</string>
+    <string name="sidebar_icon_padding_value">Icon padding: %1$d dp</string>
+    <string name="sidebar_column_spacing_value">Column spacing: %1$d dp</string>
+    <string name="sidebar_corner_radius_value">Corner radius: %1$d dp</string>
+    <string name="sidebar_bg_transparency_value">Background transparency: %1$.2f</string>
+    <string name="sidebar_reset_defaults">Reset to defaults</string>
+
+    <!-- Visual effects -->
+    <string name="sidebar_drop_shadow_title">Drop shadow</string>
+
+    <!-- Miscellaneous -->
     <string name="sidebar_tap_to_open_title">Open drawer on tap</string>
     <string name="sidebar_tap_to_open_summary">Open the sidebar drawer when the slider is tapped</string>
     <string name="sidebar_swipe_to_open_title">Open drawer on swipe</string>

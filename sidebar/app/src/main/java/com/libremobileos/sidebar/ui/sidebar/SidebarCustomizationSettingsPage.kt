@@ -27,10 +27,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.android.settingslib.spa.framework.compose.LocalNavController
 import com.android.settingslib.spa.framework.compose.NavControllerWrapper
 import com.android.settingslib.spa.widget.scaffold.SettingsScaffold
+import com.libremobileos.sidebar.R
 
 @Composable
 fun SidebarCustomizationSettingsPage(
@@ -66,7 +69,7 @@ fun SidebarCustomizationSettingsPage(
             override fun navigateBack() = onBack()
         }
     }) {
-        SettingsScaffold(title = "Sidebar customization") { paddingValues ->
+        SettingsScaffold(title = stringResource(R.string.sidebar_customization_title)) { paddingValues ->
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -74,56 +77,104 @@ fun SidebarCustomizationSettingsPage(
                     .padding(horizontal = 16.dp),
             ) {
                 item {
-                    CustomizationSection("Slider settings") {
-                        SliderSetting("Transparency: ${"%.2f".format(transparency)}", transparency, 0.1f..1f) {
+                    CustomizationSection(stringResource(R.string.sidebar_section_slider)) {
+                        SliderSetting(
+                            stringResource(R.string.sidebar_transparency_value, transparency),
+                            transparency,
+                            0.1f..1f,
+                        ) {
                             transparency = it
                             update { putFloat("slider_transparency", it) }
                         }
-                        SliderSetting("Slider length: $sliderLength px", sliderLength.toFloat(), 100f..500f) {
+                        SliderSetting(
+                            stringResource(R.string.sidebar_length_value, sliderLength),
+                            sliderLength.toFloat(),
+                            100f..500f,
+                        ) {
                             sliderLength = it.toInt()
                             update { putInt("slider_length", sliderLength) }
                         }
-                        SliderSetting("Slider width: $sliderWidth px", sliderWidth.toFloat(), 20f..200f) {
+                        SliderSetting(
+                            stringResource(R.string.sidebar_width_value, sliderWidth),
+                            sliderWidth.toFloat(),
+                            20f..200f,
+                        ) {
                             sliderWidth = it.toInt()
                             update { putInt("slider_width", sliderWidth) }
                         }
-                        Text("Position")
+                        Text(stringResource(R.string.sidebar_position_label))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(position == -1, { position = -1; update { putInt("sideline_position_x", position) } }, label = { Text("Left") })
-                            FilterChip(position == 1, { position = 1; update { putInt("sideline_position_x", position) } }, label = { Text("Right") })
+                            FilterChip(
+                                position == -1,
+                                { position = -1; update { putInt("sideline_position_x", position) } },
+                                label = { Text(stringResource(R.string.sidebar_left)) },
+                            )
+                            FilterChip(
+                                position == 1,
+                                { position = 1; update { putInt("sideline_position_x", position) } },
+                                label = { Text(stringResource(R.string.sidebar_right)) },
+                            )
                         }
                     }
                 }
                 item {
-                    CustomizationSection("Layout settings") {
-                        SliderSetting("Columns: $columnCount", columnCount.toFloat(), 1f..3f, 1) {
+                    CustomizationSection(stringResource(R.string.sidebar_section_layout)) {
+                        SliderSetting(
+                            pluralStringResource(R.plurals.sidebar_columns_value, columnCount, columnCount),
+                            columnCount.toFloat(),
+                            1f..3f,
+                            1,
+                        ) {
                             columnCount = it.toInt(); update { putInt("sidebar_columns", columnCount) }
                         }
-                        SliderSetting("Icon size: $iconSize dp", iconSize.toFloat(), 30f..80f) {
+                        SliderSetting(
+                            stringResource(R.string.sidebar_icon_size_value, iconSize),
+                            iconSize.toFloat(),
+                            30f..80f,
+                        ) {
                             iconSize = it.toInt(); update { putInt("sidebar_icon_size", iconSize) }
                         }
-                        SliderSetting("Icon padding: $iconPadding dp", iconPadding.toFloat(), 4f..20f) {
+                        SliderSetting(
+                            stringResource(R.string.sidebar_icon_padding_value, iconPadding),
+                            iconPadding.toFloat(),
+                            4f..20f,
+                        ) {
                             iconPadding = it.toInt(); update { putInt("sidebar_icon_padding", iconPadding) }
                         }
-                        if (columnCount > 1) SliderSetting("Column spacing: $columnSpacing dp", columnSpacing.toFloat(), 1f..12f) {
+                        if (columnCount > 1) SliderSetting(
+                            stringResource(R.string.sidebar_column_spacing_value, columnSpacing),
+                            columnSpacing.toFloat(),
+                            1f..12f,
+                        ) {
                             columnSpacing = it.toInt(); update { putInt("sidebar_column_spacing", columnSpacing) }
                         }
-                        SliderSetting("Corner radius: ${cornerRadius.toInt()} dp", cornerRadius, 0f..32f) {
+                        SliderSetting(
+                            stringResource(R.string.sidebar_corner_radius_value, cornerRadius.toInt()),
+                            cornerRadius,
+                            0f..32f,
+                        ) {
                             cornerRadius = it; update { putFloat("sidebar_corner_radius", it) }
                         }
-                        SliderSetting("Background transparency: ${"%.2f".format(backgroundTransparency)}", backgroundTransparency, 0.1f..1f) {
+                        SliderSetting(
+                            stringResource(R.string.sidebar_bg_transparency_value, backgroundTransparency),
+                            backgroundTransparency,
+                            0.1f..1f,
+                        ) {
                             backgroundTransparency = it; update { putFloat("sidebar_background_transparency", it) }
                         }
                     }
                 }
                 item {
-                    CustomizationSection("Visual effects") {
+                    CustomizationSection(stringResource(R.string.sidebar_section_visual)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Switch(showShadow, {
                                 showShadow = it
                                 update { putBoolean("sidebar_show_shadow", it) }
                             })
-                            Text("Drop shadow", modifier = Modifier.padding(start = 12.dp))
+                            Text(
+                                stringResource(R.string.sidebar_drop_shadow_title),
+                                modifier = Modifier.padding(start = 12.dp),
+                            )
                         }
                     }
                 }
@@ -136,7 +187,10 @@ fun SidebarCustomizationSettingsPage(
                         Column(
                             modifier = Modifier.padding(16.dp)
                         ) {
-                            Text("Gesture settings", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.sidebar_section_miscellaneous),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
                             Spacer(modifier = Modifier.height(12.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -151,9 +205,9 @@ fun SidebarCustomizationSettingsPage(
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text("Open drawer on tap")
+                                    Text(stringResource(R.string.sidebar_tap_to_open_title))
                                     Text(
-                                        text = "Open the sidebar drawer when the slider is tapped",
+                                        text = stringResource(R.string.sidebar_tap_to_open_summary),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -173,9 +227,9 @@ fun SidebarCustomizationSettingsPage(
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text("Open drawer on swipe")
+                                    Text(stringResource(R.string.sidebar_swipe_to_open_title))
                                     Text(
-                                        text = "Open the sidebar drawer when the slider is swiped horizontally",
+                                        text = stringResource(R.string.sidebar_swipe_to_open_summary),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -205,7 +259,7 @@ fun SidebarCustomizationSettingsPage(
                             }
                         },
                         modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                    ) { Text("Reset to defaults") }
+                    ) { Text(stringResource(R.string.sidebar_reset_defaults)) }
                 }
             }
         }
