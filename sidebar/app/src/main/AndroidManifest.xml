@@ -44,6 +44,10 @@
             android:exported="true"
             android:excludeFromRecents="true"/>
 
+        <activity
+            android:name=".ui.sidebar.SidebarCustomizationActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SpaLib"/>
         <service android:name=".service.SidebarService"/>
 
         <receiver
