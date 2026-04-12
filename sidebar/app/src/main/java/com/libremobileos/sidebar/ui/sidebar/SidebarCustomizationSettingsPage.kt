@@ -53,6 +53,7 @@ fun SidebarCustomizationSettingsPage(
     }
     var showShadow by remember { mutableStateOf(sharedPrefs.getBoolean("sidebar_show_shadow", true)) }
     var tapToOpen by remember { mutableStateOf(sharedPrefs.getBoolean("sidebar_tap_to_open", false)) }
+    var swipeToOpen by remember { mutableStateOf(sharedPrefs.getBoolean("sidebar_swipe_to_open", true)) }
 
     fun update(block: SharedPreferences.Editor.() -> Unit) {
         sharedPrefs.edit().apply(block).apply()
@@ -158,6 +159,28 @@ fun SidebarCustomizationSettingsPage(
                                     )
                                 }
                             }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Switch(
+                                    checked = swipeToOpen,
+                                    onCheckedChange = {
+                                        swipeToOpen = it
+                                        update { putBoolean("sidebar_swipe_to_open", it) }
+                                    },
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text("Open drawer on swipe")
+                                    Text(
+                                        text = "Open the sidebar drawer when the slider is swiped horizontally",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -168,6 +191,7 @@ fun SidebarCustomizationSettingsPage(
                             sliderWidth = 100; iconSize = 40; iconPadding = 7; columnSpacing = 4
                             cornerRadius = 24f; backgroundTransparency = 0.8f; showShadow = true
                             tapToOpen = false
+                            swipeToOpen = true
                             update {
                                 putFloat("slider_transparency", transparency); putInt("slider_length", sliderLength)
                                 putInt("sideline_position_x", position); putInt("sidebar_columns", columnCount)
@@ -177,6 +201,7 @@ fun SidebarCustomizationSettingsPage(
                                 putFloat("sidebar_background_transparency", backgroundTransparency)
                                 putBoolean("sidebar_show_shadow", showShadow)
                                 putBoolean("sidebar_tap_to_open", tapToOpen)
+                                putBoolean("sidebar_swipe_to_open", swipeToOpen)
                             }
                         },
                         modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
