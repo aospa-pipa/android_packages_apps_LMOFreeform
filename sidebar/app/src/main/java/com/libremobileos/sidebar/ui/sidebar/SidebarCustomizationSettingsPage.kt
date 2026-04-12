@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
@@ -51,6 +52,7 @@ fun SidebarCustomizationSettingsPage(
         mutableStateOf(sharedPrefs.getFloat("sidebar_background_transparency", 0.8f))
     }
     var showShadow by remember { mutableStateOf(sharedPrefs.getBoolean("sidebar_show_shadow", true)) }
+    var tapToOpen by remember { mutableStateOf(sharedPrefs.getBoolean("sidebar_tap_to_open", false)) }
 
     fun update(block: SharedPreferences.Editor.() -> Unit) {
         sharedPrefs.edit().apply(block).apply()
@@ -125,11 +127,47 @@ fun SidebarCustomizationSettingsPage(
                     }
                 }
                 item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text("Gesture settings", style = MaterialTheme.typography.titleMedium)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Switch(
+                                    checked = tapToOpen,
+                                    onCheckedChange = {
+                                        tapToOpen = it
+                                        update { putBoolean("sidebar_tap_to_open", it) }
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text("Open drawer on tap")
+                                    Text(
+                                        text = "Open the sidebar drawer when the slider is tapped",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                item {
                     OutlinedButton(
                         onClick = {
                             transparency = 0.8f; sliderLength = 200; position = 1; columnCount = 1
                             sliderWidth = 100; iconSize = 40; iconPadding = 7; columnSpacing = 4
                             cornerRadius = 24f; backgroundTransparency = 0.8f; showShadow = true
+                            tapToOpen = false
                             update {
                                 putFloat("slider_transparency", transparency); putInt("slider_length", sliderLength)
                                 putInt("sideline_position_x", position); putInt("sidebar_columns", columnCount)
@@ -138,6 +176,7 @@ fun SidebarCustomizationSettingsPage(
                                 putFloat("sidebar_corner_radius", cornerRadius)
                                 putFloat("sidebar_background_transparency", backgroundTransparency)
                                 putBoolean("sidebar_show_shadow", showShadow)
+                                putBoolean("sidebar_tap_to_open", tapToOpen)
                             }
                         },
                         modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
