@@ -1,13 +1,10 @@
 package com.libremobileos.freeform.server.ui;
 
-import static com.libremobileos.freeform.server.Debug.dlog;
+import static com.libremobileos.freeform.server.util.Debug.dlog;
 
 import android.app.PendingIntent;
-import android.content.ComponentName;
 import android.content.Context;
 import android.os.Handler;
-import android.util.ArrayMap;
-import android.util.Slog;
 
 import java.util.HashMap;
 

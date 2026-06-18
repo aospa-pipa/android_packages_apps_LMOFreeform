@@ -4,12 +4,10 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.PixelFormat
 import android.graphics.SurfaceTexture
-import android.os.Build
 import android.os.Handler
 import android.util.Slog
 import android.view.Display
 import android.view.DisplayInfo
-import android.view.GestureDetector
 import android.view.IRotationWatcher
 import android.view.MotionEvent
 import android.view.Surface
@@ -18,12 +16,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.FrameLayout
+import android.widget.ImageView
 import com.android.server.LocalServices
 import com.android.server.wm.WindowManagerInternal
 import com.libremobileos.freeform.ILMOFreeformDisplayCallback
-import com.libremobileos.freeform.server.Debug.dlog
+import com.libremobileos.freeform.server.util.Debug.dlog
 import com.libremobileos.freeform.server.LMOFreeformServiceHolder
 import com.libremobileos.freeform.server.SystemServiceHolder
+import com.libremobileos.freeform.server.util.dpToPx
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -46,11 +46,12 @@ class FreeformWindow(
     lateinit var freeformView: TextureView
     private lateinit var topBarView: View
     private lateinit var bottomBarView: View
+    private lateinit var minimizedIconContainer: View
+    private lateinit var minimizedIconImage: ImageView
     private var displayId = Display.INVALID_DISPLAY
     var defaultDisplayWidth = context.resources.displayMetrics.widthPixels
     var defaultDisplayHeight = context.resources.displayMetrics.heightPixels
     var defaultDisplayRotation = context.display.rotation
-    private val hangUpGestureListener = HangUpGestureListener(this)
     private val defaultDisplayInfo = DisplayInfo()
     private val destroyRunnable = Runnable { destroy("destroyRunnable", true) }
 
@@ -63,7 +64,7 @@ class FreeformWindow(
             measureSize()
             handler.post {
                 changeOrientation()
-                if (freeformConfig.isHangUp) toHangUp()
+                if (freeformConfig.isHangUp) toMinimizedIcon()
                 else makeSureFreeformInScreen()
             }
             measureScale()
@@ -87,6 +88,9 @@ class FreeformWindow(
         private const val WINDOW_DESTROY_WAIT_MS = 10000L
         private const val SIDEBAR_PACKAGE = "com.libremobileos.sidebar"
         private const val ALL_APP_ACTIVITY = "com.libremobileos.sidebar.ui.all_app.AllAppActivity"
+        private const val MINIMIZED_CONTAINER_WIDTH_DP = 88
+        private const val MINIMIZED_CONTAINER_HEIGHT_DP = 72
+        private const val MINIMIZED_PEEK_OFFSET_DP = 24
     }
 
     init {
@@ -286,18 +290,15 @@ class FreeformWindow(
         freeformRootView = resourceHolder.getLayoutChildViewByTag<FrameLayout>(freeformLayout, "freeform_root") ?: return false
         topBarView = resourceHolder.getLayoutChildViewByTag(freeformLayout, "topBarView") ?: return false
         bottomBarView = resourceHolder.getLayoutChildViewByTag(freeformLayout, "bottomBarView") ?: return false
+        minimizedIconContainer = resourceHolder.getLayoutChildViewByTag(freeformLayout, "minimizedIconContainer") ?: return false
+        minimizedIconImage = resourceHolder.getLayoutChildViewByTag(freeformLayout, "minimizedIconImage") ?: return false
         val middleView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "middleView") ?: return false
         val moveTouchListener = MoveTouchListener(this)
         topBarView.setOnTouchListener(moveTouchListener)
         middleView.setOnTouchListener(moveTouchListener)
-        val leftView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "leftView")
-        val leftScaleView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "leftScaleView")
-        val rightScaleView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "rightScaleView")
-        if (null == leftView || null == leftScaleView || null == rightScaleView) {
-            Slog.e(TAG, "left&leftScale&rightScale view is null")
-            destroy("addFreeformView:left&leftScale&rightScale view is null")
-            return false
-        }
+        val leftView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "leftView") ?: return false
+        val leftScaleView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "leftScaleView") ?: return false
+        val rightScaleView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "rightScaleView") ?: return false
         leftView.setOnClickListener(LeftViewClickListener(this))
         if (!(appConfig.packageName == SIDEBAR_PACKAGE && appConfig.activityName == ALL_APP_ACTIVITY)) {
             // Sidebar all apps activity should not be fullscreen.
@@ -343,65 +344,84 @@ class FreeformWindow(
      */
     @SuppressLint("ClickableViewAccessibility")
     fun handleHangUp() {
+        dlog(TAG, "handleHangUp isHangUp=${freeformConfig.isHangUp}")
         if (freeformConfig.isHangUp) {
+            freeformConfig.apply {
+                inHangUpX = windowParams.x
+                inHangUpY = windowParams.y
+            }
             windowParams.apply {
                 x = freeformConfig.notInHangUpX
                 y = freeformConfig.notInHangUpY
+                width = WindowManager.LayoutParams.WRAP_CONTENT
+                height = WindowManager.LayoutParams.WRAP_CONTENT
                 flags = flags or WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
             }
-            freeformRootView.layoutParams.apply {
+            freeformRootView.layoutParams = freeformRootView.layoutParams.apply {
                 width = freeformConfig.width
                 height = freeformConfig.height
             }
             windowManager.updateViewLayout(freeformLayout, windowParams)
+            minimizedIconContainer.setOnTouchListener(null)
+            minimizedIconContainer.visibility = View.GONE
+            freeformRootView.visibility = View.VISIBLE
             topBarView.visibility = View.VISIBLE
             bottomBarView.visibility = View.VISIBLE
             freeformConfig.isHangUp = false
             freeformView.setOnTouchListener(this)
         } else {
-            freeformConfig.notInHangUpX = windowParams.x
-            freeformConfig.notInHangUpY = windowParams.y
-            toHangUp()
+            freeformConfig.apply {
+                notInHangUpX = windowParams.x
+                notInHangUpY = windowParams.y
+            }
             topBarView.visibility = View.GONE
             bottomBarView.visibility = View.GONE
+            freeformRootView.visibility = View.GONE
+            minimizedIconContainer.visibility = View.VISIBLE
+            minimizedIconContainer.setOnTouchListener(MinimizedIconTouchListener(this))
+            windowParams.flags = windowParams.flags xor WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
             freeformConfig.isHangUp = true
-            val gestureDetector = GestureDetector(context, hangUpGestureListener)
-            freeformView.setOnTouchListener { _, event ->
-                gestureDetector.onTouchEvent(event)
-                if (event.action == MotionEvent.ACTION_UP) makeSureFreeformInScreen()
-                true
-            }
+            toMinimizedIcon()
         }
     }
 
     /**
      * Called in system handler
      */
-    fun toHangUp() {
+    fun toMinimizedIcon() {
+        val appIcon =
+            runCatching { context.packageManager.getApplicationIcon(appConfig.packageName) }
+            .getOrElse { err ->
+                Slog.e(TAG, "failed to load app icon: $err")
+                context.packageManager.defaultActivityIcon
+            }
+        val containerWidth = MINIMIZED_CONTAINER_WIDTH_DP.dpToPx(context).roundToInt()
+        val containerHeight = MINIMIZED_CONTAINER_HEIGHT_DP.dpToPx(context).roundToInt()
+        val peekOffset = MINIMIZED_PEEK_OFFSET_DP.dpToPx(context).roundToInt()
+        minimizedIconImage.setImageDrawable(appIcon)
         windowParams.apply {
-            x = (defaultDisplayWidth / 2 - freeformConfig.hangUpWidth / 2)
-            y = -(defaultDisplayHeight / 2 - freeformConfig.hangUpHeight / 2)
-            flags = flags xor WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
+            width = containerWidth
+            height = containerHeight
+            x = if (freeformConfig.inHangUpX != -1) freeformConfig.inHangUpX
+                else defaultDisplayWidth / 2 - containerWidth / 2 + peekOffset
+            y = if (freeformConfig.inHangUpY != -1) freeformConfig.inHangUpY
+                else (-defaultDisplayHeight / 2 * 0.7).roundToInt()
         }
-        freeformRootView.layoutParams = freeformRootView.layoutParams.apply {
-            width = freeformConfig.hangUpWidth
-            height = freeformConfig.hangUpHeight
-        }
-        runCatching { windowManager.updateViewLayout(freeformLayout, windowParams) }.onFailure { Slog.e(TAG, "$it") }
+        runCatching { windowManager.updateViewLayout(freeformLayout, windowParams) }
+            .onFailure { Slog.e(TAG, "$it") }
     }
 
     /**
      * Called in uiHandler
      */
     fun makeSureFreeformInScreen() {
-        if (!freeformConfig.isHangUp) {
-            val maxWidth = defaultDisplayWidth
-            val maxHeight = (defaultDisplayHeight * 0.9).roundToInt()
-            if (freeformRootView.layoutParams.width > maxWidth || freeformRootView.layoutParams.height > maxHeight) {
-                freeformRootView.layoutParams = freeformRootView.layoutParams.apply {
-                    width = min(freeformRootView.width, maxWidth)
-                    height = min(freeformRootView.height, maxHeight)
-                }
+        if (freeformConfig.isHangUp) return
+        val maxWidth = defaultDisplayWidth
+        val maxHeight = (defaultDisplayHeight * 0.9).roundToInt()
+        if (freeformRootView.layoutParams.width > maxWidth || freeformRootView.layoutParams.height > maxHeight) {
+            freeformRootView.layoutParams = freeformRootView.layoutParams.apply {
+                width = min(freeformRootView.width, maxWidth)
+                height = min(freeformRootView.height, maxHeight)
             }
         }
         if (windowParams.x < -(defaultDisplayWidth / 2)) FreeformAnimation.moveInScreenAnimator(windowParams.x, -(defaultDisplayWidth / 2), 300, true, this)
@@ -415,9 +435,10 @@ class FreeformWindow(
      * Called in system handler
      */
     fun changeOrientation() {
+        if (freeformConfig.isHangUp) return
         freeformRootView.layoutParams = freeformRootView.layoutParams.apply {
-            width = if (freeformConfig.isHangUp) freeformConfig.hangUpWidth else freeformConfig.width
-            height = if (freeformConfig.isHangUp) freeformConfig.hangUpHeight else freeformConfig.height
+            width = freeformConfig.width
+            height = freeformConfig.height
         }
     }
 

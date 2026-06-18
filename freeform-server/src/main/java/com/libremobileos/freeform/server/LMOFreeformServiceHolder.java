@@ -1,6 +1,6 @@
 package com.libremobileos.freeform.server;
 
-import static com.libremobileos.freeform.server.Debug.dlog;
+import static com.libremobileos.freeform.server.util.Debug.dlog;
 
 import android.app.ActivityThread;
 import android.app.IApplicationThread;
@@ -10,8 +10,6 @@ import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
-import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.SystemClock;

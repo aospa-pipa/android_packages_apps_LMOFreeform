@@ -1,9 +1,8 @@
 package com.libremobileos.freeform.server;
 
-import static com.libremobileos.freeform.server.Debug.dlog;
+import static com.libremobileos.freeform.server.util.Debug.dlog;
 
 import android.hardware.display.DisplayManagerInternal;
-import android.util.Slog;
 import android.view.InputEvent;
 import android.view.Surface;
 

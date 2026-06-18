@@ -10,4 +10,6 @@
     <color name="google_grey_900">#202124</color>
     <color name="color_text">@color/black</color>
     <color name="color_surface">@color/white</color>
+    <color name="color_minimized_background">@*android:color/system_surface_container_low_light</color>
+    <color name="color_minimized_foreground">@*android:color/system_on_surface_light</color>
 </resources>

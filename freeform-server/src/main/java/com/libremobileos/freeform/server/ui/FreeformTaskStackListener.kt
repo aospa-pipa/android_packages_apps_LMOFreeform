@@ -3,14 +3,9 @@ package com.libremobileos.freeform.server.ui
 import android.app.ActivityManager
 import android.app.ITaskStackListener
 import android.content.ComponentName
-import android.os.Build
-import android.util.Slog
 import android.view.Display
-import android.view.Surface
 import android.window.TaskSnapshot
-import com.libremobileos.freeform.server.Debug.dlog
-import com.libremobileos.freeform.server.LMOFreeformServiceHolder
-import com.libremobileos.freeform.server.SystemServiceHolder
+import com.libremobileos.freeform.server.util.Debug.dlog
 import kotlin.math.max
 import kotlin.math.min
 

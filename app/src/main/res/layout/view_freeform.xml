@@ -38,6 +38,37 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/topBarView" />
 
+        <LinearLayout
+            android:id="@+id/minimized_icon_container"
+            android:tag="minimizedIconContainer"
+            android:layout_width="@dimen/minimized_container_width"
+            android:layout_height="@dimen/minimized_container_height"
+            android:visibility="gone"
+            android:background="@drawable/minimized_icon_bg"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="4dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <ImageView
+                android:layout_width="12dp"
+                android:layout_height="24dp"
+                android:src="@drawable/chevron_left"
+                android:tint="@color/color_minimized_foreground" />
+
+            <ImageView
+                android:id="@+id/minimized_icon_image"
+                android:tag="minimizedIconImage"
+                android:layout_width="@dimen/minimized_icon_size"
+                android:layout_height="@dimen/minimized_icon_size"
+                android:layout_weight="1"
+                android:padding="4dp"
+                android:scaleType="centerInside" />
+        </LinearLayout>
+
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/bottomBar"
             android:layout_width="0dp"

@@ -4,11 +4,12 @@ import android.annotation.SuppressLint
 import android.os.Build
 import android.util.Slog
 import android.view.Display
-import android.view.GestureDetector.SimpleOnGestureListener
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import com.libremobileos.freeform.server.LMOFreeformServiceHolder
 import com.libremobileos.freeform.server.SystemServiceHolder
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -132,32 +133,36 @@ class ScaleTouchListener(private val window: FreeformWindow, private val isRight
     }
 }
 
-class HangUpGestureListener(private val window: FreeformWindow) : SimpleOnGestureListener() {
-    private var startX = 0
-    private var startY = 0
-    override fun onDown(e: MotionEvent): Boolean {
-        startX = window.windowParams.x
-        startY = window.windowParams.y
-        return super.onDown(e)
-    }
+class MinimizedIconTouchListener(private val window: FreeformWindow) : View.OnTouchListener {
+    private var startRawY = 0f
+    private var startWindowY = 0
+    private var hasMoved = false
 
-    override fun onSingleTapUp(e: MotionEvent): Boolean {
-        window.handler.post { window.handleHangUp() }
-        return true
-    }
-
-    override fun onScroll(
-        e1: MotionEvent?,
-        e2: MotionEvent,
-        distanceX: Float,
-        distanceY: Float
-    ): Boolean {
-        if (null == e1) return true
-        window.handler.post {
-            window.windowManager.updateViewLayout(window.freeformLayout, window.windowParams.apply {
-                x = (startX + e2.rawX - e1.rawX).roundToInt()
-                y = (startY + e2.rawY - e1.rawY).roundToInt()
-            })
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onTouch(v: View, event: MotionEvent): Boolean {
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                startRawY = event.rawY
+                startWindowY = window.windowParams.y
+                hasMoved = false
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val dy = event.rawY - startRawY
+                if (abs(dy) > ViewConfiguration.get(v.context).scaledTouchSlop) {
+                    hasMoved = true
+                }
+                val iconSizePx = window.windowParams.height
+                val maxY = window.defaultDisplayHeight / 2 - iconSizePx / 2
+                val minY = -(window.defaultDisplayHeight / 2 - iconSizePx / 2)
+                window.windowManager.updateViewLayout(window.freeformLayout, window.windowParams.apply {
+                    y = (startWindowY + dy).roundToInt().coerceIn(minY, maxY)
+                })
+            }
+            MotionEvent.ACTION_UP -> {
+                if (!hasMoved) {
+                    window.handler.post { window.handleHangUp() }
+                }
+            }
         }
         return true
     }

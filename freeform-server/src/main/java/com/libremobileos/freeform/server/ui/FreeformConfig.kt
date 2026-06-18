@@ -15,6 +15,8 @@ data class FreeformConfig @JvmOverloads constructor(
     // 记录挂起前的位置，以便恢复
     var notInHangUpX: Int = 0,
     var notInHangUpY: Int = 0,
+    var inHangUpX: Int = -1,
+    var inHangUpY: Int = -1,
     //小窗屏幕宽高，与view的比例
     var freeformWidth: Int = 1080,
     var freeformHeight: Int = 1920,
