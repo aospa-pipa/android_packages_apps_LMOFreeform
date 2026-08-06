@@ -106,15 +106,9 @@ class ScaleTouchListener(private val window: FreeformWindow, private val isRight
                     window.freeformConfig.width = window.freeformRootView.layoutParams.width
                     window.freeformConfig.height = window.freeformRootView.layoutParams.height
                     window.handler.post { window.makeSureFreeformInScreen() }
-                    window.measureScale()
-                    LMOFreeformServiceHolder.resizeFreeform(
-                        window,
-                        window.freeformConfig.freeformWidth,
-                        window.freeformConfig.freeformHeight,
-                        window.freeformConfig.densityDpi
-                    )
-                    window.freeformView.surfaceTexture!!.setDefaultBufferSize(window.freeformConfig.freeformWidth, window.freeformConfig.freeformHeight)
-                    // Delay the unveiling until after the scaling is complete
+                    // Resize only the overlay. Keeping the virtual display and its buffer at
+                    // their initial size prevents apps from receiving a display config change.
+                    window.measureScale(updateDisplaySize = false)
                     window.handler.postDelayed({
                         window.freeformRootView.visibility = View.VISIBLE
                         window.veilView.visibility = View.GONE

@@ -326,13 +326,15 @@ class FreeformWindow(
         else -> null
     }
 
-    fun measureScale() {
+    fun measureScale(updateDisplaySize: Boolean = true) {
         freeformConfig.apply {
             val widthScale = min(defaultDisplayWidth, defaultDisplayHeight) * 1.0f / min(width, height)
             val heightScale = max(defaultDisplayWidth, defaultDisplayHeight) * 1.0f / max(width, height)
             scale = min(widthScale, heightScale)
-            freeformWidth = (width * scale).roundToInt()
-            freeformHeight = (height * scale).roundToInt()
+            if (updateDisplaySize) {
+                freeformWidth = (width * scale).roundToInt()
+                freeformHeight = (height * scale).roundToInt()
+            }
             dlog(TAG, "measureScale: $scale freeformWidth=$freeformWidth freeformHeight=$freeformHeight")
         }
     }
