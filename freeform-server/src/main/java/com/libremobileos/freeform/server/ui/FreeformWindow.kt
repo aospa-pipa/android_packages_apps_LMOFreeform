@@ -102,7 +102,8 @@ class FreeformWindow(
         private const val MINIMIZED_PEEK_OFFSET_DP = 24
         private const val INITIAL_WINDOW_SIZE_FRACTION = 0.6f
         private const val MAX_WINDOW_HEIGHT_FRACTION = 0.9f
-        private const val MIN_WINDOW_WIDTH = 25
+        // App icon, three 24dp actions, and their margins in the top bar.
+        private const val MIN_WINDOW_WIDTH_DP = 132
     }
 
     init {
@@ -250,10 +251,11 @@ class FreeformWindow(
         val aspectRatio = targetAspectRatio()
         val availableWidth = defaultDisplayWidth * INITIAL_WINDOW_SIZE_FRACTION
         val availableHeight = defaultDisplayHeight * INITIAL_WINDOW_SIZE_FRACTION
-        val height = min(availableHeight, availableWidth / aspectRatio)
+        val initialHeight = min(availableHeight, availableWidth / aspectRatio)
+        val (width, height) = constrainWidth((initialHeight * aspectRatio).toDouble())
         freeformConfig.apply {
-            width = (height * aspectRatio).roundToInt()
-            this.height = height.roundToInt()
+            this.width = width
+            this.height = height
             dlog(
                 TAG,
                 "measureSize: appIsLandscape=$appIsLandscape aspectRatio=$aspectRatio " +
@@ -263,9 +265,9 @@ class FreeformWindow(
     }
 
     fun resizeFreeformBy(widthDelta: Float) {
-        val width = max(MIN_WINDOW_WIDTH, (freeformRootView.width + widthDelta).roundToInt())
-        val height = max(MIN_WINDOW_WIDTH, (width / targetAspectRatio()).roundToInt())
-        val (constrainedWidth, constrainedHeight) = constrainSize(width.toDouble(), height.toDouble())
+        val (constrainedWidth, constrainedHeight) = constrainWidth(
+            (freeformRootView.width + widthDelta).toDouble()
+        )
         freeformRootView.layoutParams = freeformRootView.layoutParams.apply {
             this.width = constrainedWidth
             this.height = constrainedHeight
@@ -278,12 +280,9 @@ class FreeformWindow(
         appIsLandscape = isLandscape
         handler.post {
             val currentArea = freeformConfig.width.toDouble() * freeformConfig.height
-            val aspectRatio = targetAspectRatio()
+            val aspectRatio = targetAspectRatio().toDouble()
             val height = sqrt(currentArea / aspectRatio)
-            val (width, constrainedHeight) = constrainSize(
-                width = height * aspectRatio,
-                height = height,
-            )
+            val (width, constrainedHeight) = constrainWidth(height * aspectRatio)
             freeformConfig.width = width
             freeformConfig.height = constrainedHeight
             measureScale()
@@ -307,11 +306,13 @@ class FreeformWindow(
         return if (appIsLandscape) longSide / shortSide else shortSide / longSide
     }
 
-    private fun constrainSize(width: Double, height: Double): Pair<Int, Int> {
-        val maxWidth = defaultDisplayWidth.toDouble()
-        val maxHeight = defaultDisplayHeight * MAX_WINDOW_HEIGHT_FRACTION
-        val scale = min(1.0, min(maxWidth / width, maxHeight / height))
-        return (width * scale).roundToInt() to (height * scale).roundToInt()
+    private fun constrainWidth(width: Double): Pair<Int, Int> {
+        val aspectRatio = targetAspectRatio().toDouble()
+        val maxHeight = defaultDisplayHeight.toDouble() * MAX_WINDOW_HEIGHT_FRACTION
+        val maxWidth = min(defaultDisplayWidth.toDouble(), maxHeight * aspectRatio)
+        val minWidth = min(MIN_WINDOW_WIDTH_DP.dpToPx(context).toDouble(), maxWidth)
+        val constrainedWidth = width.coerceIn(minWidth, maxWidth)
+        return constrainedWidth.roundToInt() to (constrainedWidth / aspectRatio).roundToInt()
     }
 
     private fun Int.toLandscapeOrientation(): Boolean? = when (this) {
@@ -482,10 +483,7 @@ class FreeformWindow(
      */
     fun makeSureFreeformInScreen() {
         if (freeformConfig.isHangUp) return
-        val (width, height) = constrainSize(
-            width = freeformRootView.layoutParams.width.toDouble(),
-            height = freeformRootView.layoutParams.width.toDouble() / targetAspectRatio(),
-        )
+        val (width, height) = constrainWidth(freeformRootView.layoutParams.width.toDouble())
         if (freeformRootView.layoutParams.width != width || freeformRootView.layoutParams.height != height) {
             freeformRootView.layoutParams = freeformRootView.layoutParams.apply {
                 this.width = width
