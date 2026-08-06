@@ -1,11 +1,13 @@
 package com.android.server.display;
 
 import static com.android.server.display.DisplayDeviceInfo.FLAG_TRUSTED;
+import static com.android.server.display.DisplayModeFactory.createMode;
 
 import android.content.Context;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.os.Process;
 import android.os.RemoteException;
 import android.util.ArrayMap;
 import android.util.Slog;
@@ -17,6 +19,7 @@ import android.view.SurfaceControl;
 import java.io.PrintWriter;
 
 import com.android.server.display.feature.DisplayManagerFlags;
+import com.android.server.display.utils.DebugTransactionDetails;
 import com.libremobileos.freeform.ILMOFreeformDisplayCallback;
 
 public class LMOFreeformDisplayAdapter extends DisplayAdapter {
@@ -69,7 +72,8 @@ public class LMOFreeformDisplayAdapter extends DisplayAdapter {
             IBinder appToken = callback.asBinder();
             FreeformFlags flags = new FreeformFlags(secure, ownContentOnly, shouldShowSystemDecorations);
             IBinder displayToken = DisplayControl.createVirtualDisplay(name, flags.mSecure,
-                    true /* optimizeForPower */, UNIQUE_ID_PREFIX + name, refreshRate);
+                    true /* optimizeForPower */, UNIQUE_ID_PREFIX + name, Process.SYSTEM_UID,
+                    refreshRate);
             FreeformDisplayDevice device = new FreeformDisplayDevice(displayToken, UNIQUE_ID_PREFIX + name, width, height, densityDpi,
                     refreshRate, presentationDeadlineNanos,
                     flags, surface, new Callback(callback, mHandler), callback.asBinder());
@@ -184,6 +188,7 @@ public class LMOFreeformDisplayAdapter extends DisplayAdapter {
                 mMode = createMode(width, height, mRefreshRate);
                 mDensityDpi = densityDpi;
                 mInfo = null;
+                mPendingChanges |= PENDING_RESIZE;
             }
         }
 
@@ -212,9 +217,10 @@ public class LMOFreeformDisplayAdapter extends DisplayAdapter {
         }
 
         @Override
-        public void configureDisplaySizeLocked(SurfaceControl.Transaction t) {
+        public void configureDisplaySizeLocked(SurfaceControl.Transaction t,
+                                               DebugTransactionDetails debugTransactionDetails) {
             if ((mPendingChanges & PENDING_RESIZE) != 0) {
-                t.setDisplaySize(getDisplayTokenLocked(), mWidth, mHeight);
+                setDisplaySizeLocked(t, mWidth, mHeight, debugTransactionDetails);
             }
             mPendingChanges &= ~PENDING_RESIZE;
         }
