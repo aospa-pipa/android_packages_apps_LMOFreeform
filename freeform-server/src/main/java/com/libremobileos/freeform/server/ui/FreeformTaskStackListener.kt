@@ -5,8 +5,6 @@ import android.app.ITaskStackListener
 import android.content.ComponentName
 import android.view.Display
 import com.libremobileos.freeform.server.util.Debug.dlog
-import kotlin.math.max
-import kotlin.math.min
 
 class FreeformTaskStackListener(
     private val displayId: Int,
@@ -17,10 +15,6 @@ class FreeformTaskStackListener(
 
     companion object {
         private const val TAG = "LMOFreeform/FreeformTaskStackListener"
-
-        const val PORTRAIT = 1
-        const val LANDSCAPE_1 = 0
-        const val LANDSCAPE_2 = 6
     }
 
     override fun onTaskStackChanged() {
@@ -100,27 +94,7 @@ class FreeformTaskStackListener(
     override fun onActivityRequestedOrientationChanged(taskId: Int, requestedOrientation: Int) {
         if (taskId == this.taskId) {
             dlog(TAG, "onActivityRequestedOrientationChanged: $requestedOrientation")
-            val max = max(window.freeformConfig.width, window.freeformConfig.height)
-            val min = min(window.freeformConfig.width, window.freeformConfig.height)
-            val maxHangUp = max(window.freeformConfig.hangUpWidth, window.freeformConfig.hangUpHeight)
-            val minHangUp = min(window.freeformConfig.hangUpWidth, window.freeformConfig.hangUpHeight)
-            when (requestedOrientation) {
-                PORTRAIT -> {
-                    dlog(TAG, "PORTRAIT")
-                    window.freeformConfig.width = min
-                    window.freeformConfig.height = max
-                    window.freeformConfig.hangUpWidth = minHangUp
-                    window.freeformConfig.hangUpHeight = maxHangUp
-                }
-                LANDSCAPE_1, LANDSCAPE_2 -> {
-                    dlog(TAG, "LANDSCAPE")
-                    window.freeformConfig.width = max
-                    window.freeformConfig.height = min
-                    window.freeformConfig.hangUpWidth = maxHangUp
-                    window.freeformConfig.hangUpHeight = minHangUp
-                }
-            }
-            window.handler.post { window.changeOrientation() }
+            window.onActivityRequestedOrientationChanged(requestedOrientation)
         }
     }
 

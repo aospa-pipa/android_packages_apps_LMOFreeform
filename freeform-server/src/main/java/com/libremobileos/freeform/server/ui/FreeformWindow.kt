@@ -1,7 +1,9 @@
 package com.libremobileos.freeform.server.ui
 
 import android.annotation.SuppressLint
+import android.content.ComponentName
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.graphics.Matrix
 import android.graphics.drawable.Drawable
 import android.graphics.PixelFormat
@@ -31,6 +33,7 @@ import com.libremobileos.freeform.server.util.dpToPx
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 class FreeformWindow(
     val handler: Handler,
@@ -56,7 +59,6 @@ class FreeformWindow(
     private var displayId = Display.INVALID_DISPLAY
     var defaultDisplayWidth = context.resources.displayMetrics.widthPixels
     var defaultDisplayHeight = context.resources.displayMetrics.heightPixels
-    var defaultDisplayRotation = context.display.rotation
     private val defaultDisplayInfo = DisplayInfo()
     private val destroyRunnable = Runnable { destroy("destroyRunnable", true) }
 
@@ -65,7 +67,6 @@ class FreeformWindow(
             dlog(TAG, "onRotationChanged($rotation)")
             defaultDisplayWidth = context.resources.displayMetrics.widthPixels
             defaultDisplayHeight = context.resources.displayMetrics.heightPixels
-            defaultDisplayRotation = context.display.rotation
             measureSize()
             handler.post {
                 changeOrientation()
@@ -87,6 +88,7 @@ class FreeformWindow(
     }
     private lateinit var appPackageName: String
     private var appIcon: Drawable? = null
+    private var appIsLandscape = false
 
     companion object {
         private const val TAG = "LMOFreeform/FreeformWindow"
@@ -98,6 +100,9 @@ class FreeformWindow(
         private const val MINIMIZED_CONTAINER_WIDTH_DP = 88
         private const val MINIMIZED_CONTAINER_HEIGHT_DP = 72
         private const val MINIMIZED_PEEK_OFFSET_DP = 24
+        private const val INITIAL_WINDOW_SIZE_FRACTION = 0.6f
+        private const val MAX_WINDOW_HEIGHT_FRACTION = 0.9f
+        private const val MIN_WINDOW_WIDTH = 25
     }
 
     init {
@@ -242,18 +247,83 @@ class FreeformWindow(
     }
 
     fun measureSize() {
-        val isPortrait = defaultDisplayRotation == Surface.ROTATION_0 ||
-                defaultDisplayRotation == Surface.ROTATION_180
+        val aspectRatio = targetAspectRatio()
+        val availableWidth = defaultDisplayWidth * INITIAL_WINDOW_SIZE_FRACTION
+        val availableHeight = defaultDisplayHeight * INITIAL_WINDOW_SIZE_FRACTION
+        val height = min(availableHeight, availableWidth / aspectRatio)
         freeformConfig.apply {
-            height = (defaultDisplayHeight * (if (isPortrait) 0.4 else 0.7)).roundToInt()
-            width = if (isPortrait) {
-                (defaultDisplayWidth * 0.7).roundToInt()
-            } else {
-                // preserving the aspect ratio
-                defaultDisplayHeight * defaultDisplayHeight / defaultDisplayWidth
-            }
-            dlog(TAG, "measureSize: isPortrait=$isPortrait width=$width height=$height")
+            width = (height * aspectRatio).roundToInt()
+            this.height = height.roundToInt()
+            dlog(
+                TAG,
+                "measureSize: appIsLandscape=$appIsLandscape aspectRatio=$aspectRatio " +
+                    "width=$width height=${this.height}"
+            )
         }
+    }
+
+    fun resizeFreeformBy(widthDelta: Float) {
+        val width = max(MIN_WINDOW_WIDTH, (freeformRootView.width + widthDelta).roundToInt())
+        val height = max(MIN_WINDOW_WIDTH, (width / targetAspectRatio()).roundToInt())
+        val (constrainedWidth, constrainedHeight) = constrainSize(width.toDouble(), height.toDouble())
+        freeformRootView.layoutParams = freeformRootView.layoutParams.apply {
+            this.width = constrainedWidth
+            this.height = constrainedHeight
+        }
+    }
+
+    fun onActivityRequestedOrientationChanged(requestedOrientation: Int) {
+        val isLandscape = requestedOrientation.toLandscapeOrientation() ?: return
+        if (appIsLandscape == isLandscape) return
+        appIsLandscape = isLandscape
+        handler.post {
+            val currentArea = freeformConfig.width.toDouble() * freeformConfig.height
+            val aspectRatio = targetAspectRatio()
+            val height = sqrt(currentArea / aspectRatio)
+            val (width, constrainedHeight) = constrainSize(
+                width = height * aspectRatio,
+                height = height,
+            )
+            freeformConfig.width = width
+            freeformConfig.height = constrainedHeight
+            measureScale()
+            changeOrientation()
+            LMOFreeformServiceHolder.resizeFreeform(
+                this@FreeformWindow,
+                freeformConfig.freeformWidth,
+                freeformConfig.freeformHeight,
+                freeformConfig.densityDpi
+            )
+            freeformView.surfaceTexture?.setDefaultBufferSize(
+                freeformConfig.freeformWidth,
+                freeformConfig.freeformHeight
+            )
+        }
+    }
+
+    private fun targetAspectRatio(): Float {
+        val shortSide = min(defaultDisplayWidth, defaultDisplayHeight).toFloat()
+        val longSide = max(defaultDisplayWidth, defaultDisplayHeight).toFloat()
+        return if (appIsLandscape) longSide / shortSide else shortSide / longSide
+    }
+
+    private fun constrainSize(width: Double, height: Double): Pair<Int, Int> {
+        val maxWidth = defaultDisplayWidth.toDouble()
+        val maxHeight = defaultDisplayHeight * MAX_WINDOW_HEIGHT_FRACTION
+        val scale = min(1.0, min(maxWidth / width, maxHeight / height))
+        return (width * scale).roundToInt() to (height * scale).roundToInt()
+    }
+
+    private fun Int.toLandscapeOrientation(): Boolean? = when (this) {
+        ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,
+        ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE,
+        ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE,
+        ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE -> true
+        ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
+        ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT,
+        ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT,
+        ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT -> false
+        else -> null
     }
 
     fun measureScale() {
@@ -410,12 +480,14 @@ class FreeformWindow(
      */
     fun makeSureFreeformInScreen() {
         if (freeformConfig.isHangUp) return
-        val maxWidth = defaultDisplayWidth
-        val maxHeight = (defaultDisplayHeight * 0.9).roundToInt()
-        if (freeformRootView.layoutParams.width > maxWidth || freeformRootView.layoutParams.height > maxHeight) {
+        val (width, height) = constrainSize(
+            width = freeformRootView.layoutParams.width.toDouble(),
+            height = freeformRootView.layoutParams.width.toDouble() / targetAspectRatio(),
+        )
+        if (freeformRootView.layoutParams.width != width || freeformRootView.layoutParams.height != height) {
             freeformRootView.layoutParams = freeformRootView.layoutParams.apply {
-                width = min(freeformRootView.width, maxWidth)
-                height = min(freeformRootView.height, maxHeight)
+                this.width = width
+                this.height = height
             }
         }
         if (windowParams.x < -(defaultDisplayWidth / 2)) FreeformAnimation.moveInScreenAnimator(windowParams.x, -(defaultDisplayWidth / 2), 300, true, this)
@@ -494,6 +566,15 @@ class FreeformWindow(
             Slog.e(TAG, "Failed to retrieve app info: ${e.message}")
             appPackageName = ""
             appIcon = null
+        }
+        appIsLandscape = runCatching {
+            context.packageManager.getActivityInfo(
+                ComponentName(appConfig.packageName, appConfig.activityName),
+                0
+            ).screenOrientation.toLandscapeOrientation() ?: false
+        }.getOrElse { error ->
+            dlog(TAG, "Failed to determine initial activity orientation: $error")
+            false
         }
     }
 }

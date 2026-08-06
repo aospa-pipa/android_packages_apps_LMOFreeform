@@ -10,7 +10,6 @@ import android.view.ViewConfiguration
 import com.libremobileos.freeform.server.LMOFreeformServiceHolder
 import com.libremobileos.freeform.server.SystemServiceHolder
 import kotlin.math.abs
-import kotlin.math.max
 import kotlin.math.roundToInt
 
 class MoveTouchListener(
@@ -97,16 +96,8 @@ class ScaleTouchListener(private val window: FreeformWindow, private val isRight
                 window.veilView.visibility = View.VISIBLE
             }
             MotionEvent.ACTION_MOVE -> {
-                window.freeformRootView.layoutParams = window.freeformRootView.layoutParams.apply {
-                    val xDelta = if (isRight) (event.rawX - startX) else (startX - event.rawX)
-                    val yDelta = event.rawY - startY
-                    width = max(25, (window.freeformRootView.width + xDelta).roundToInt())
-                    height = max(25, (window.freeformRootView.height + yDelta).roundToInt())
-                    if (width > height) {
-                        if (xDelta < 0) width = height
-                        else height = width
-                    }
-                }
+                val xDelta = if (isRight) (event.rawX - startX) else (startX - event.rawX)
+                window.resizeFreeformBy(xDelta)
                 startX = event.rawX
                 startY = event.rawY
             }
