@@ -40,6 +40,12 @@ fun SidebarSettingsPage(viewModel: SidebarSettingsViewModel) {
     androidx.compose.runtime.CompositionLocalProvider(navController.localNavController()) {
         SettingsScaffold(
             title = stringResource(R.string.sidebar_label),
+            // This activity is launched as a top-level Settings entry.  On large screens Android
+            // 17 embeds it beside the Settings homepage, where the homepage already provides
+            // navigation.  Treat it as a first-layer page so SettingsLib does not add a redundant
+            // back button.  The customization activity remains a child page and keeps its back
+            // affordance.
+            isFirstLayerPageWhenEmbedded = true,
             actions = {
                 IconButton(onClick = {
                     context.startActivity(Intent(context, SidebarCustomizationActivity::class.java))
