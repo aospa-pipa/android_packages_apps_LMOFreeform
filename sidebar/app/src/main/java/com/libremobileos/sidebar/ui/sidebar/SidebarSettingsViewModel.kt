@@ -24,7 +24,6 @@ import com.libremobileos.sidebar.service.SidebarService
 import com.libremobileos.sidebar.utils.Logger
 import com.libremobileos.sidebar.utils.contains
 import com.libremobileos.sidebar.utils.getSidebarFilteredUsers
-import com.libremobileos.sidebar.utils.isResizeableActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -119,25 +118,20 @@ class SidebarSettingsViewModel(private val application: Application) : AndroidVi
                 val sidebarAppList = repository.getAllSidebarWithoutLiveData()
 
                 list.forEach { info ->
-                    val component = info.componentName
-                    if (!application.isResizeableActivity(component)) {
-                        logger.d("activity not resizeable, skipped $component")
-                    } else {
-                        allAppList.add(
-                            SidebarAppInfo(
-                                "${info.label}${userInfo.suffix}",
-                                info.getBadgedIcon(0),
-                                component.packageName,
-                                component.className,
-                                userInfo.userId,
-                                sidebarAppList?.contains(
-                                    info.componentName.packageName,
-                                    info.componentName.className,
-                                    userInfo.userId
-                                ) ?: false
-                            )
+                    allAppList.add(
+                        SidebarAppInfo(
+                            "${info.label}${userInfo.suffix}",
+                            info.getBadgedIcon(0),
+                            info.componentName.packageName,
+                            info.componentName.className,
+                            userInfo.userId,
+                            sidebarAppList?.contains(
+                                info.componentName.packageName,
+                                info.componentName.className,
+                                userInfo.userId
+                            ) ?: false
                         )
-                    }
+                    )
                 }
             }
 

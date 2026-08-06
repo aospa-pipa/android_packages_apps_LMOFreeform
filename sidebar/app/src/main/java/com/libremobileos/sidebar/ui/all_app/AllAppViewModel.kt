@@ -21,7 +21,6 @@ import com.libremobileos.sidebar.utils.Logger
 import com.libremobileos.sidebar.utils.getBadgedIcon
 import com.libremobileos.sidebar.utils.getSidebarFilteredUsers
 import com.libremobileos.sidebar.utils.getInfo
-import com.libremobileos.sidebar.utils.isResizeableActivity
 import com.libremobileos.sidebar.utils.isSidebarUserAllowed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -80,10 +79,6 @@ class AllAppViewModel(private val application: Application): AndroidViewModel(ap
                     return
                 }
                 if (launchIntent != null && launchIntent.component != null) {
-                    if (!application.isResizeableActivity(launchIntent.component!!)) {
-                        logger.d("onPackageAdded: activity not resizeable, skipped ${launchIntent.component}")
-                        return
-                    }
                     viewModelScope.launch(Dispatchers.IO) {
                         allAppList.add(
                             AppInfo(
@@ -99,7 +94,6 @@ class AllAppViewModel(private val application: Application): AndroidViewModel(ap
                     }
                 }
             }
-                .onFailure { logger.e("onPackageAdded: error in $packageName", it) }
         }
 
         override fun onPackageChanged(packageName: String, user: UserHandle) {
@@ -154,20 +148,15 @@ class AllAppViewModel(private val application: Application): AndroidViewModel(ap
             userManager.getSidebarFilteredUsers().forEach { userInfo ->
                 val list = launcherApps.getActivityList(null, userInfo.userHandle)
                 list.forEach { info ->
-                    val component = info.componentName
-                    if (!application.isResizeableActivity(component)) {
-                        logger.d("activity not resizeable, skipped $component")
-                    } else {
-                        allAppList.add(
-                            AppInfo(
-                                info.label.toString(),
-                                info.getBadgedIcon(0),
-                                component.packageName,
-                                component.className,
-                                userInfo.userId
-                            )
+                    allAppList.add(
+                        AppInfo(
+                            info.label.toString(),
+                            info.getBadgedIcon(0),
+                            info.componentName.packageName,
+                            info.componentName.className,
+                            userInfo.userId
                         )
-                    }
+                    )
                 }
             }
             Collections.sort(allAppList, appComparator)

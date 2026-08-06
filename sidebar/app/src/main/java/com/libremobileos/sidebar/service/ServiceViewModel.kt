@@ -32,7 +32,6 @@ import com.libremobileos.sidebar.utils.Logger
 import com.libremobileos.sidebar.utils.contains
 import com.libremobileos.sidebar.utils.getBadgedIcon
 import com.libremobileos.sidebar.utils.getInfo
-import com.libremobileos.sidebar.utils.isResizeableActivity
 import com.libremobileos.sidebar.utils.isSidebarUserAllowed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -140,20 +139,14 @@ class ServiceViewModel(private val application: Application): AndroidViewModel(a
                     runCatching {
                         val info = application.packageManager.getApplicationInfo(target.packageName, PackageManager.GET_ACTIVITIES)
                         val launchIntent = application.packageManager.getLaunchIntentForPackage(target.packageName)
-                        val component = launchIntent!!.component!!
                         val userId = target.user.identifier
-                        if (!application.isResizeableActivity(component)) {
-                            logger.d("appPredictionCallback: activity is not resizeable, skipped $target")
-                            null
-                        } else {
-                            AppInfo(
-                                info.loadLabel(application.packageManager).toString(),
-                                application.getBadgedIcon(info, target.user),
-                                info.packageName,
-                                component.className,
-                                userId
-                            )
-                        }
+                        AppInfo(
+                            info.loadLabel(application.packageManager).toString(),
+                            application.getBadgedIcon(info, target.user),
+                            info.packageName,
+                            launchIntent!!.component!!.className,
+                            userId
+                        )
                     }.onFailure { e ->
                         logger.e("failed to add $target: ", e)
                     }.getOrNull()
@@ -312,9 +305,6 @@ class ServiceViewModel(private val application: Application): AndroidViewModel(a
     }
 
     private fun SidebarAppsEntity.toAppInfo(): AppInfo {
-        if (!application.isResizeableActivity(packageName, activityName)) {
-            throw Exception("activity is not resizeable")
-        }
         val info = application.packageManager.getApplicationInfo(
             packageName,
             PackageManager.GET_ACTIVITIES
@@ -331,4 +321,3 @@ class ServiceViewModel(private val application: Application): AndroidViewModel(a
         )
     }
 }
-
