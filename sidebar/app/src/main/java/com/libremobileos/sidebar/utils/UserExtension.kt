@@ -25,9 +25,8 @@ fun UserManager.getSidebarFilteredUsers(): List<SidebarUserInfo> {
 fun UserManager.isSidebarUserAllowed(userInfo: UserInfo?): Boolean {
     if (userInfo == null) return false
     val myUserId = UserHandle.myUserId()
-    // must be either current user, or current user's parallel space or unlocked profile
+    // Must be either the current user or an unlocked profile of the current user.
     return userInfo.id == myUserId ||
-        userInfo.parallelParentId == myUserId ||
         (userInfo.profileGroupId == myUserId && !isQuietModeEnabled(userInfo.userHandle))
 }
 
