@@ -21,14 +21,16 @@ class MoveTouchListener(
     override fun onTouch(v: View, event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
+                window.bringToFront()
                 startX = event.rawX
                 startY = event.rawY
             }
             MotionEvent.ACTION_MOVE -> {
-                window.windowManager.updateViewLayout(window.freeformLayout, window.windowParams.apply {
+                window.windowParams.apply {
                     x = (x + event.rawX - startX).roundToInt()
                     y = (y + event.rawY - startY).roundToInt()
-                })
+                }
+                window.updateWindowLayout()
                 startX = event.rawX
                 startY = event.rawY
             }
@@ -42,6 +44,7 @@ class MoveTouchListener(
 
 class LeftViewClickListener(private val window: FreeformWindow) : View.OnClickListener {
     override fun onClick(v: View) {
+        window.bringToFront()
         window.close()
     }
 
@@ -55,6 +58,7 @@ class MaximizeClickListener(private val window: FreeformWindow): View.OnClickLis
         private const val TAG = "LMOFreeform/TouchListener"
     }
     override fun onClick(v: View) {
+        window.bringToFront()
         if (null != window.freeformTaskStackListener) {
             if (window.freeformTaskStackListener!!.taskId == -1) {
                 Slog.e(TAG, "taskId is -1, can`t move")
@@ -70,6 +74,7 @@ class MaximizeClickListener(private val window: FreeformWindow): View.OnClickLis
  */
 class PinClickListener(private val window: FreeformWindow): View.OnClickListener {
     override fun onClick(v: View) {
+        window.bringToFront()
         window.handler.post {
             // hangup
             window.handleHangUp()
@@ -90,6 +95,7 @@ class ScaleTouchListener(private val window: FreeformWindow, private val isRight
     override fun onTouch(v: View, event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
+                window.bringToFront()
                 startX = event.rawX
                 startY = event.rawY
                 window.freeformRootView.visibility = View.INVISIBLE
@@ -136,6 +142,7 @@ class MinimizedIconTouchListener(private val window: FreeformWindow) : View.OnTo
     override fun onTouch(v: View, event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
+                window.bringToFront()
                 startRawY = event.rawY
                 startWindowY = window.windowParams.y
                 hasMoved = false
@@ -148,9 +155,10 @@ class MinimizedIconTouchListener(private val window: FreeformWindow) : View.OnTo
                 val iconSizePx = window.windowParams.height
                 val maxY = window.defaultDisplayHeight / 2 - iconSizePx / 2
                 val minY = -(window.defaultDisplayHeight / 2 - iconSizePx / 2)
-                window.windowManager.updateViewLayout(window.freeformLayout, window.windowParams.apply {
+                window.windowParams.apply {
                     y = (startWindowY + dy).roundToInt().coerceIn(minY, maxY)
-                })
+                }
+                window.updateWindowLayout()
             }
             MotionEvent.ACTION_UP -> {
                 if (!hasMoved) {

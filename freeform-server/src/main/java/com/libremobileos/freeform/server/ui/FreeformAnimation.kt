@@ -10,13 +10,11 @@ object FreeformAnimation {
             play(
                 ValueAnimator.ofInt(start, end).apply {
                     addUpdateListener {
-                        window.windowManager.updateViewLayout(
-                            window.freeformLayout,
-                            window.windowParams.apply {
-                                if (moveX) x = it.animatedValue as Int
-                                else y = it.animatedValue as Int
-                            }
-                        )
+                        window.windowParams.apply {
+                            if (moveX) x = it.animatedValue as Int
+                            else y = it.animatedValue as Int
+                        }
+                        window.updateWindowLayout()
                     }
                 }
             )
@@ -30,12 +28,8 @@ object FreeformAnimation {
             play(
                 ValueAnimator.ofInt(window.windowParams.x, 0).apply {
                     addUpdateListener {
-                        window.windowManager.updateViewLayout(
-                            window.freeformLayout,
-                            window.windowParams.apply {
-                                x = it.animatedValue as Int
-                            }
-                        )
+                        window.windowParams.x = it.animatedValue as Int
+                        window.updateWindowLayout()
                     }
                 }
             )
@@ -46,12 +40,8 @@ object FreeformAnimation {
             play(
                 ValueAnimator.ofInt(window.windowParams.y, 0).apply {
                     addUpdateListener {
-                        window.windowManager.updateViewLayout(
-                            window.freeformLayout,
-                            window.windowParams.apply {
-                                y = it.animatedValue as Int
-                            }
-                        )
+                        window.windowParams.y = it.animatedValue as Int
+                        window.updateWindowLayout()
                     }
                 }
             )

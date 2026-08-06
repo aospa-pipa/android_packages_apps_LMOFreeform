@@ -205,17 +205,18 @@ class FreeformWindow(
             flags = if (hasSecureWindowOnScreen) {
                 flags or WindowManager.LayoutParams.FLAG_SECURE
             } else {
-                flags xor WindowManager.LayoutParams.FLAG_SECURE
+                flags and WindowManager.LayoutParams.FLAG_SECURE.inv()
             }
         }
         handler.post {
-            runCatching { windowManager.updateViewLayout(freeformLayout, windowParams) }
+            runCatching { FreeformWindowManager.updateWindowSecurity(this@FreeformWindow) }
                 .onFailure { Slog.e(TAG, "updateViewLayout failed: $it") }
         }
     }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouch(view: View, event: MotionEvent): Boolean {
+        if (event.action == MotionEvent.ACTION_DOWN) bringToFront()
         val newEvent = MotionEvent.obtain(event)
         val scaleMatrix = Matrix().apply {
             setScale(freeformConfig.scale, freeformConfig.scale)
@@ -272,6 +273,14 @@ class FreeformWindow(
             this.width = constrainedWidth
             this.height = constrainedHeight
         }
+    }
+
+    fun updateWindowLayout() {
+        FreeformWindowManager.updateWindowLayout(this)
+    }
+
+    fun bringToFront() {
+        FreeformWindowManager.bringToFront(this)
     }
 
     fun onActivityRequestedOrientationChanged(requestedOrientation: Int) {
@@ -396,7 +405,7 @@ class FreeformWindow(
             windowAnimations = android.R.style.Animation_Dialog
         }
         runCatching {
-            windowManager.addView(freeformLayout, windowParams)
+            check(FreeformWindowManager.attachWindowView(this))
             SystemServiceHolder.windowManager.watchRotation(rotationWatcher, Display.DEFAULT_DISPLAY)
             windowManagerInt.registerDisplaySecureContentListener(this)
         }.onFailure {
@@ -428,7 +437,7 @@ class FreeformWindow(
                 width = freeformConfig.width
                 height = freeformConfig.height
             }
-            windowManager.updateViewLayout(freeformLayout, windowParams)
+            updateWindowLayout()
             minimizedIconContainer.setOnTouchListener(null)
             minimizedIconContainer.visibility = View.GONE
             freeformRootView.visibility = View.VISIBLE
@@ -474,7 +483,7 @@ class FreeformWindow(
             y = if (freeformConfig.inHangUpY != -1) freeformConfig.inHangUpY
                 else (-defaultDisplayHeight / 2 * 0.7).roundToInt()
         }
-        runCatching { windowManager.updateViewLayout(freeformLayout, windowParams) }
+        runCatching { updateWindowLayout() }
             .onFailure { Slog.e(TAG, "$it") }
     }
 
@@ -528,7 +537,7 @@ class FreeformWindow(
         handler.removeCallbacks(destroyRunnable)
         handler.post {
             runCatching {
-                windowManager.removeViewImmediate(freeformLayout)
+                FreeformWindowManager.detachWindowView(this@FreeformWindow)
                 dlog(TAG, "removeView success")
             }.onFailure { exception ->
                 Slog.e(TAG, "removeView failed $exception")
