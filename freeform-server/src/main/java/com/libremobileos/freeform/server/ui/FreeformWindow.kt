@@ -20,9 +20,11 @@ import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.WindowInsets
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
+import com.android.internal.policy.SystemBarUtils
 import com.android.server.LocalServices
 import com.android.server.wm.WindowManagerInternal
 import com.libremobileos.freeform.ILMOFreeformDisplayCallback
@@ -509,10 +511,29 @@ class FreeformWindow(
                 this.height = height
             }
         }
-        if (windowParams.x < -(defaultDisplayWidth / 2)) FreeformAnimation.moveInScreenAnimator(windowParams.x, -(defaultDisplayWidth / 2), 300, true, this)
-        else if (windowParams.x > (defaultDisplayWidth / 2)) FreeformAnimation.moveInScreenAnimator(windowParams.x, (defaultDisplayWidth / 2), 300, true, this)
-        if (windowParams.y < -(defaultDisplayHeight / 2)) FreeformAnimation.moveInScreenAnimator(windowParams.y, -(defaultDisplayHeight / 2), 300, false, this)
-        else if (windowParams.y > (defaultDisplayHeight / 2)) FreeformAnimation.moveInScreenAnimator(windowParams.y, (defaultDisplayHeight / 2), 300, false, this)
+        val hostWidth = FreeformWindowManager.getHostWidth().takeIf { it > 0 }
+            ?: defaultDisplayWidth
+        val hostHeight = FreeformWindowManager.getHostHeight().takeIf { it > 0 }
+            ?: defaultDisplayHeight
+        val systemBarInsets = FreeformWindowManager.getHostWindowInsets()
+            ?.getInsetsIgnoringVisibility(
+                WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars()
+            )
+        val statusBarHeight = systemBarInsets?.top?.takeIf { it > 0 }
+            ?: SystemBarUtils.getStatusBarHeight(context)
+        val navigationBarHeight = systemBarInsets?.bottom?.takeIf { it > 0 }
+            ?: context.resources.getDimensionPixelSize(com.android.internal.R.dimen.navigation_bar_height)
+        val maxX = (hostWidth - freeformLayout.width).coerceAtLeast(0) / 2
+        val minY = -hostHeight / 2 + statusBarHeight + freeformLayout.height / 2
+        val maxY = hostHeight / 2 - navigationBarHeight - freeformLayout.height / 2
+        val (lowerY, upperY) = if (minY <= maxY) minY to maxY else {
+            val safeAreaCenter = (statusBarHeight - navigationBarHeight) / 2
+            safeAreaCenter to safeAreaCenter
+        }
+        if (windowParams.x < -maxX) FreeformAnimation.moveInScreenAnimator(windowParams.x, -maxX, 300, true, this)
+        else if (windowParams.x > maxX) FreeformAnimation.moveInScreenAnimator(windowParams.x, maxX, 300, true, this)
+        if (windowParams.y < lowerY) FreeformAnimation.moveInScreenAnimator(windowParams.y, lowerY, 300, false, this)
+        else if (windowParams.y > upperY) FreeformAnimation.moveInScreenAnimator(windowParams.y, upperY, 300, false, this)
     }
 
     /**

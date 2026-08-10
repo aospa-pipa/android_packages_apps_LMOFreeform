@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
+import android.view.WindowInsets;
 import android.widget.FrameLayout;
 
 import java.util.ArrayList;
@@ -69,6 +70,7 @@ public class FreeformWindowManager {
                 ((ViewGroup) windowView.getParent()).removeView(windowView);
             }
             hostView.addView(windowView, createChildLayoutParams(window));
+            updateChildTranslation(windowView, window.getWindowParams());
             attachedWindows.add(window);
             hostView.bringChildToFront(windowView);
             updateHostSecureFlag();
@@ -85,7 +87,9 @@ public class FreeformWindowManager {
         if (hostView == null || window.getFreeformLayout().getParent() != hostView) {
             return;
         }
-        window.getFreeformLayout().setLayoutParams(createChildLayoutParams(window));
+        View windowView = window.getFreeformLayout();
+        windowView.setLayoutParams(createChildLayoutParams(window));
+        updateChildTranslation(windowView, window.getWindowParams());
         hostView.requestLayout();
         hostView.invalidate();
     }
@@ -103,6 +107,18 @@ public class FreeformWindowManager {
             return;
         }
         updateHostSecureFlag();
+    }
+
+    public static synchronized int getHostWidth() {
+        return hostView != null ? hostView.getWidth() : 0;
+    }
+
+    public static synchronized int getHostHeight() {
+        return hostView != null ? hostView.getHeight() : 0;
+    }
+
+    public static synchronized WindowInsets getHostWindowInsets() {
+        return hostView != null ? hostView.getRootWindowInsets() : null;
     }
 
     public static synchronized void detachWindowView(FreeformWindow window) {
@@ -131,22 +147,30 @@ public class FreeformWindowManager {
         hostView = new FreeformWindowHost(window.getContext());
         hostView.setClipChildren(false);
         hostView.setClipToPadding(false);
+        hostView.setClipToOutline(false);
         hostParams = new WindowManager.LayoutParams();
         hostParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
         hostParams.width = WindowManager.LayoutParams.MATCH_PARENT;
         hostParams.height = WindowManager.LayoutParams.MATCH_PARENT;
         hostParams.flags = HOST_FLAGS;
         hostParams.format = PixelFormat.RGBA_8888;
+        // The host must cover the whole display. Individual windows handle their own
+        // system-bar-safe bounds, so fitting this host would apply those insets twice.
+        hostParams.setFitInsetsTypes(0);
+        hostParams.layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
         windowManager.addView(hostView, hostParams);
     }
 
     private static FrameLayout.LayoutParams createChildLayoutParams(FreeformWindow window) {
         WindowManager.LayoutParams params = window.getWindowParams();
-        FrameLayout.LayoutParams childParams = new FrameLayout.LayoutParams(
-                params.width, params.height, Gravity.CENTER);
-        childParams.leftMargin = params.x;
-        childParams.topMargin = params.y;
-        return childParams;
+        return new FrameLayout.LayoutParams(params.width, params.height, Gravity.CENTER);
+    }
+
+    private static void updateChildTranslation(
+            View windowView, WindowManager.LayoutParams params) {
+        windowView.setTranslationX(params.x);
+        windowView.setTranslationY(params.y);
     }
 
     private static void updateHostSecureFlag() {
@@ -188,11 +212,13 @@ public class FreeformWindowManager {
             for (int index = 0; index < getChildCount(); index++) {
                 View child = getChildAt(index);
                 if (child.getVisibility() == View.VISIBLE) {
+                    int translationX = Math.round(child.getTranslationX());
+                    int translationY = Math.round(child.getTranslationY());
                     inoutInfo.touchableRegion.op(
-                            child.getLeft(),
-                            child.getTop(),
-                            child.getRight(),
-                            child.getBottom(),
+                            child.getLeft() + translationX,
+                            child.getTop() + translationY,
+                            child.getRight() + translationX,
+                            child.getBottom() + translationY,
                             android.graphics.Region.Op.UNION);
                 }
             }

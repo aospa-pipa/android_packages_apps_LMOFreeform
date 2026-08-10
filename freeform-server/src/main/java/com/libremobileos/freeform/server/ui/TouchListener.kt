@@ -34,7 +34,7 @@ class MoveTouchListener(
                 startX = event.rawX
                 startY = event.rawY
             }
-            MotionEvent.ACTION_UP -> {
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 window.makeSureFreeformInScreen()
             }
         }
