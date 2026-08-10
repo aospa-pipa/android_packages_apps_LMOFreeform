@@ -90,22 +90,39 @@ class RightViewClickListener(private val displayId: Int) : View.OnClickListener 
 
 class ScaleTouchListener(private val window: FreeformWindow, private val isRight: Boolean = true): View.OnTouchListener {
     private var startX = 0.0f
-    private var startY = 0.0f
+    private var startWidth = 0
+    private var startHeight = 0
+    private var startLayoutWidth = 0
+    private var startLayoutHeight = 0
+    private var startWindowX = 0
+    private var startWindowY = 0
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouch(v: View, event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 window.bringToFront()
                 startX = event.rawX
-                startY = event.rawY
+                startWidth = window.freeformRootView.layoutParams.width
+                startHeight = window.freeformRootView.layoutParams.height
+                startLayoutWidth = window.freeformLayout.width.takeIf { it > 0 } ?: startWidth
+                startLayoutHeight = window.freeformLayout.height.takeIf { it > 0 } ?: startHeight
+                startWindowX = window.windowParams.x
+                startWindowY = window.windowParams.y
                 window.freeformRootView.visibility = View.INVISIBLE
                 window.veilView.visibility = View.VISIBLE
             }
             MotionEvent.ACTION_MOVE -> {
                 val xDelta = if (isRight) (event.rawX - startX) else (startX - event.rawX)
-                window.resizeFreeformBy(xDelta, isRight)
-                startX = event.rawX
-                startY = event.rawY
+                window.resizeFreeformTo(
+                    startWidth + xDelta,
+                    isRight,
+                    startWidth,
+                    startHeight,
+                    startLayoutWidth,
+                    startLayoutHeight,
+                    startWindowX,
+                    startWindowY
+                )
             }
             MotionEvent.ACTION_UP -> {
                 if (window.freeformView.surfaceTexture != null) {

@@ -267,22 +267,41 @@ class FreeformWindow(
         }
     }
 
-    fun resizeFreeformBy(widthDelta: Float, isRight: Boolean) {
-        val currentWidth = freeformRootView.layoutParams.width
-        val currentHeight = freeformRootView.layoutParams.height
+    fun resizeFreeformTo(
+        requestedWidth: Float,
+        isRight: Boolean,
+        startWidth: Int,
+        startHeight: Int,
+        startLayoutWidth: Int,
+        startLayoutHeight: Int,
+        startWindowX: Int,
+        startWindowY: Int
+    ) {
         val (constrainedWidth, constrainedHeight) = constrainWidth(
-            (currentWidth + widthDelta).toDouble()
+            requestedWidth.toDouble()
         )
         freeformRootView.layoutParams = freeformRootView.layoutParams.apply {
             this.width = constrainedWidth
             this.height = constrainedHeight
         }
-        val widthDeltaAfterConstraints = constrainedWidth - currentWidth
-        val heightDeltaAfterConstraints = constrainedHeight - currentHeight
+        val targetLayoutWidth = startLayoutWidth + constrainedWidth - startWidth
+        val targetLayoutHeight = startLayoutHeight + constrainedHeight - startHeight
+        val hostWidth = FreeformWindowManager.getHostWidth().takeIf { it > 0 }
+            ?: defaultDisplayWidth
+        val hostHeight = FreeformWindowManager.getHostHeight().takeIf { it > 0 }
+            ?: defaultDisplayHeight
+        val startLeft = (hostWidth - startLayoutWidth) / 2 + startWindowX
+        val startTop = (hostHeight - startLayoutHeight) / 2 + startWindowY
+        val targetLeft = if (isRight) {
+            startLeft
+        } else {
+            startLeft + startLayoutWidth - targetLayoutWidth
+        }
         windowParams.apply {
-            // Keep the top corner opposite the resize handle fixed.
-            x += (if (isRight) widthDeltaAfterConstraints else -widthDeltaAfterConstraints) / 2
-            y += heightDeltaAfterConstraints / 2
+            // FrameLayout centers children using integer division. Recalculate the translation
+            // from the fixed opposite corner so width/height parity cannot move that corner.
+            x = targetLeft - (hostWidth - targetLayoutWidth) / 2
+            y = startTop - (hostHeight - targetLayoutHeight) / 2
         }
         updateWindowLayout()
     }
