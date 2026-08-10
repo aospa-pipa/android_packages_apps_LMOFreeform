@@ -121,22 +121,41 @@ public class FreeformWindowManager {
         return hostView != null ? hostView.getRootWindowInsets() : null;
     }
 
-    public static synchronized void detachWindowView(FreeformWindow window) {
-        if (hostView == null) {
+    public static void detachWindowView(FreeformWindow window) {
+        final FreeformWindowHost detachedHost;
+        final WindowManager detachedWindowManager;
+        final boolean removeHost;
+        synchronized (FreeformWindowManager.class) {
+            if (hostView == null) {
+                return;
+            }
+            detachedHost = hostView;
+            detachedWindowManager = windowManager;
+            attachedWindows.remove(window);
+            removeHost = attachedWindows.isEmpty();
+            if (removeHost) {
+                hostView = null;
+                hostParams = null;
+                windowManager = null;
+            }
+        }
+
+        // View removal sends accessibility events that acquire WindowManager's global lock.
+        // Keeping the FreeformWindowManager monitor here caused a lock inversion on task close.
+        detachedHost.removeView(window.getFreeformLayout());
+        if (removeHost) {
+            detachedWindowManager.removeViewImmediate(detachedHost);
             return;
         }
-        hostView.removeView(window.getFreeformLayout());
-        attachedWindows.remove(window);
-        if (attachedWindows.isEmpty()) {
-            windowManager.removeViewImmediate(hostView);
-            hostView = null;
-            hostParams = null;
-            windowManager = null;
-            return;
+
+        synchronized (FreeformWindowManager.class) {
+            if (hostView != detachedHost) {
+                return;
+            }
+            updateHostSecureFlag();
+            hostView.requestLayout();
+            hostView.invalidate();
         }
-        updateHostSecureFlag();
-        hostView.requestLayout();
-        hostView.invalidate();
     }
 
     private static void ensureHost(FreeformWindow window) {

@@ -1,6 +1,8 @@
 package com.android.server.display;
 
 import static com.android.server.display.DisplayDeviceInfo.FLAG_TRUSTED;
+import static com.android.server.display.DisplayDeviceInfo.FLAG_OWN_FOCUS;
+import static com.android.server.display.DisplayDeviceInfo.FLAG_STEAL_TOP_FOCUS_DISABLED;
 import static com.android.server.display.DisplayModeFactory.createMode;
 
 import android.content.Context;
@@ -264,8 +266,10 @@ public class LMOFreeformDisplayAdapter extends DisplayAdapter {
                 }
                 mInfo.type = Display.TYPE_OVERLAY;
                 mInfo.touch = DisplayDeviceInfo.TOUCH_VIRTUAL;
-                // The display is trusted since it is created by system.
-                mInfo.flags |= FLAG_TRUSTED;
+                // Keep the virtual display focusable for injected input without allowing it to
+                // steal global focus from the physical display. System navigation must continue
+                // to be driven by the primary display while a freeform window is active.
+                mInfo.flags |= FLAG_TRUSTED | FLAG_OWN_FOCUS | FLAG_STEAL_TOP_FOCUS_DISABLED;
                 mInfo.displayShape = DisplayShape.createDefaultDisplayShape(mInfo.width, mInfo.height, false);
             }
             return mInfo;
