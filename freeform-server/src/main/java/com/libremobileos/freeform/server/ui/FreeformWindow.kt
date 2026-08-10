@@ -265,14 +265,24 @@ class FreeformWindow(
         }
     }
 
-    fun resizeFreeformBy(widthDelta: Float) {
+    fun resizeFreeformBy(widthDelta: Float, isRight: Boolean) {
+        val currentWidth = freeformRootView.layoutParams.width
+        val currentHeight = freeformRootView.layoutParams.height
         val (constrainedWidth, constrainedHeight) = constrainWidth(
-            (freeformRootView.width + widthDelta).toDouble()
+            (currentWidth + widthDelta).toDouble()
         )
         freeformRootView.layoutParams = freeformRootView.layoutParams.apply {
             this.width = constrainedWidth
             this.height = constrainedHeight
         }
+        val widthDeltaAfterConstraints = constrainedWidth - currentWidth
+        val heightDeltaAfterConstraints = constrainedHeight - currentHeight
+        windowParams.apply {
+            // Keep the top corner opposite the resize handle fixed.
+            x += (if (isRight) widthDeltaAfterConstraints else -widthDeltaAfterConstraints) / 2
+            y += heightDeltaAfterConstraints / 2
+        }
+        updateWindowLayout()
     }
 
     fun updateWindowLayout() {

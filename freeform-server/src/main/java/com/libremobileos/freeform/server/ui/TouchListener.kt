@@ -103,7 +103,7 @@ class ScaleTouchListener(private val window: FreeformWindow, private val isRight
             }
             MotionEvent.ACTION_MOVE -> {
                 val xDelta = if (isRight) (event.rawX - startX) else (startX - event.rawX)
-                window.resizeFreeformBy(xDelta)
+                window.resizeFreeformBy(xDelta, isRight)
                 startX = event.rawX
                 startY = event.rawY
             }
