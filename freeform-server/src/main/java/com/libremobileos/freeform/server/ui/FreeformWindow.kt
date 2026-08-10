@@ -69,28 +69,20 @@ class FreeformWindow(
             dlog(TAG, "onRotationChanged($rotation)")
             defaultDisplayWidth = context.resources.displayMetrics.widthPixels
             defaultDisplayHeight = context.resources.displayMetrics.heightPixels
-            measureSize()
+            if (followsDisplayOrientation) {
+                appIsLandscape = isDisplayLandscape()
+            }
+            resizeForOrientationChange()
             handler.post {
-                changeOrientation()
                 if (freeformConfig.isHangUp) toMinimizedIcon()
                 else makeSureFreeformInScreen()
             }
-            measureScale()
-            LMOFreeformServiceHolder.resizeFreeform(
-                this@FreeformWindow,
-                freeformConfig.freeformWidth,
-                freeformConfig.freeformHeight,
-                freeformConfig.densityDpi
-            )
-            freeformView?.surfaceTexture?.setDefaultBufferSize(
-                freeformConfig.freeformWidth,
-                freeformConfig.freeformHeight
-            )
         }
     }
     private lateinit var appPackageName: String
     private var appIcon: Drawable? = null
     private var appIsLandscape = false
+    private var followsDisplayOrientation = true
 
     companion object {
         private const val TAG = "LMOFreeform/FreeformWindow"
@@ -315,9 +307,16 @@ class FreeformWindow(
     }
 
     fun onActivityRequestedOrientationChanged(requestedOrientation: Int) {
-        val isLandscape = requestedOrientation.toLandscapeOrientation() ?: return
-        if (appIsLandscape == isLandscape) return
+        val fixedLandscape = requestedOrientation.toFixedLandscape()
+        val followsDisplay = fixedLandscape == null
+        val isLandscape = fixedLandscape ?: isDisplayLandscape()
+        if (followsDisplayOrientation == followsDisplay && appIsLandscape == isLandscape) return
+        followsDisplayOrientation = followsDisplay
         appIsLandscape = isLandscape
+        resizeForOrientationChange()
+    }
+
+    private fun resizeForOrientationChange() {
         handler.post {
             val currentArea = freeformConfig.width.toDouble() * freeformConfig.height
             val aspectRatio = targetAspectRatio().toDouble()
@@ -333,7 +332,7 @@ class FreeformWindow(
                 freeformConfig.freeformHeight,
                 freeformConfig.densityDpi
             )
-            freeformView.surfaceTexture?.setDefaultBufferSize(
+            freeformView?.surfaceTexture?.setDefaultBufferSize(
                 freeformConfig.freeformWidth,
                 freeformConfig.freeformHeight
             )
@@ -355,15 +354,11 @@ class FreeformWindow(
         return constrainedWidth.roundToInt() to (constrainedWidth / aspectRatio).roundToInt()
     }
 
-    private fun Int.toLandscapeOrientation(): Boolean? = when (this) {
-        ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,
-        ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE,
-        ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE,
-        ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE -> true
-        ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
-        ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT,
-        ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT,
-        ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT -> false
+    private fun isDisplayLandscape(): Boolean = defaultDisplayWidth > defaultDisplayHeight
+
+    private fun Int.toFixedLandscape(): Boolean? = when {
+        ActivityInfo.isFixedOrientationLandscape(this) -> true
+        ActivityInfo.isFixedOrientationPortrait(this) -> false
         else -> null
     }
 
@@ -626,14 +621,17 @@ class FreeformWindow(
             appPackageName = ""
             appIcon = null
         }
-        appIsLandscape = runCatching {
+        val requestedOrientation = runCatching {
             context.packageManager.getActivityInfo(
                 ComponentName(appConfig.packageName, appConfig.activityName),
                 0
-            ).screenOrientation.toLandscapeOrientation() ?: false
+            ).screenOrientation
         }.getOrElse { error ->
             dlog(TAG, "Failed to determine initial activity orientation: $error")
-            false
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
+        val fixedLandscape = requestedOrientation.toFixedLandscape()
+        followsDisplayOrientation = fixedLandscape == null
+        appIsLandscape = fixedLandscape ?: isDisplayLandscape()
     }
 }
