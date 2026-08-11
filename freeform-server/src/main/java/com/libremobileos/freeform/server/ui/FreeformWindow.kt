@@ -82,6 +82,7 @@ class FreeformWindow(
     private var appIcon: Drawable? = null
     private var appIsLandscape = false
     private var followsDisplayOrientation = true
+    private var hangUpAnimationRunning = false
 
     companion object {
         private const val TAG = "LMOFreeform/FreeformWindow"
@@ -444,42 +445,63 @@ class FreeformWindow(
     @SuppressLint("ClickableViewAccessibility")
     fun handleHangUp() {
         dlog(TAG, "handleHangUp isHangUp=${freeformConfig.isHangUp}")
+        if (hangUpAnimationRunning) return
         if (freeformConfig.isHangUp) {
-            freeformConfig.apply {
-                inHangUpX = windowParams.x
-                inHangUpY = windowParams.y
+            hangUpAnimationRunning = true
+            FreeformAnimation.scaleOut(freeformLayout, 120) {
+                restoreFromMinimized()
+                FreeformAnimation.scaleIn(freeformLayout, 180) {
+                    hangUpAnimationRunning = false
+                }
             }
-            windowParams.apply {
-                x = freeformConfig.notInHangUpX
-                y = freeformConfig.notInHangUpY
-                width = WindowManager.LayoutParams.WRAP_CONTENT
-                height = WindowManager.LayoutParams.WRAP_CONTENT
-                flags = flags or WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
-            }
-            freeformRootView.layoutParams = freeformRootView.layoutParams.apply {
-                width = freeformConfig.width
-                height = freeformConfig.height
-            }
-            updateWindowLayout()
-            minimizedIconContainer.setOnTouchListener(null)
-            minimizedIconContainer.visibility = View.GONE
-            freeformRootView.visibility = View.VISIBLE
-            topBarView.visibility = View.VISIBLE
-            freeformConfig.isHangUp = false
-            freeformView.setOnTouchListener(this)
         } else {
-            freeformConfig.apply {
-                notInHangUpX = windowParams.x
-                notInHangUpY = windowParams.y
+            hangUpAnimationRunning = true
+            FreeformAnimation.scaleOut(freeformLayout, 150) {
+                minimizeToIcon()
+                FreeformAnimation.scaleIn(freeformLayout, 180) {
+                    hangUpAnimationRunning = false
+                }
             }
-            topBarView.visibility = View.GONE
-            freeformRootView.visibility = View.GONE
-            minimizedIconContainer.visibility = View.VISIBLE
-            minimizedIconContainer.setOnTouchListener(MinimizedIconTouchListener(this))
-            windowParams.flags = windowParams.flags xor WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
-            freeformConfig.isHangUp = true
-            toMinimizedIcon()
         }
+    }
+
+    private fun restoreFromMinimized() {
+        freeformConfig.apply {
+            inHangUpX = windowParams.x
+            inHangUpY = windowParams.y
+        }
+        windowParams.apply {
+            x = freeformConfig.notInHangUpX
+            y = freeformConfig.notInHangUpY
+            width = WindowManager.LayoutParams.WRAP_CONTENT
+            height = WindowManager.LayoutParams.WRAP_CONTENT
+            flags = flags or WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
+        }
+        freeformRootView.layoutParams = freeformRootView.layoutParams.apply {
+            width = freeformConfig.width
+            height = freeformConfig.height
+        }
+        updateWindowLayout()
+        minimizedIconContainer.setOnTouchListener(null)
+        minimizedIconContainer.visibility = View.GONE
+        freeformRootView.visibility = View.VISIBLE
+        topBarView.visibility = View.VISIBLE
+        freeformConfig.isHangUp = false
+        freeformView.setOnTouchListener(this)
+    }
+
+    private fun minimizeToIcon() {
+        freeformConfig.apply {
+            notInHangUpX = windowParams.x
+            notInHangUpY = windowParams.y
+        }
+        topBarView.visibility = View.GONE
+        freeformRootView.visibility = View.GONE
+        minimizedIconContainer.visibility = View.VISIBLE
+        minimizedIconContainer.setOnTouchListener(MinimizedIconTouchListener(this))
+        windowParams.flags = windowParams.flags xor WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
+        freeformConfig.isHangUp = true
+        toMinimizedIcon()
     }
 
     /**
