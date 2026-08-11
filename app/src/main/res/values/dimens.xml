@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="top_bar_height">28dp</dimen>
-    <dimen name="bottom_bar_height">28dp</dimen>
-    <dimen name="scale_width">28dp</dimen>
+    <dimen name="resize_handle_size">28dp</dimen>
 
     <dimen name="minimized_icon_size">64dp</dimen>
     <!-- paddingStart (4dp) + arrow (12dp) + icon (64dp) + padding (2*4dp) -->

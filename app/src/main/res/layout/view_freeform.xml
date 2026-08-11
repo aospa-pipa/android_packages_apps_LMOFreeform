@@ -40,15 +40,16 @@
                 android:textSize="11sp"
                 android:textColor="@color/color_text"
                 app:layout_constraintStart_toEndOf="@id/appIcon"
-                app:layout_constraintEnd_toStartOf="@id/pinView"
+                app:layout_constraintEnd_toStartOf="@id/arrowBack"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent" />
-            <View
-                android:id="@+id/spacer"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:tag="spacer"
-                app:layout_constraintStart_toEndOf="@id/packageName"
+            <ImageView
+                android:id="@+id/arrowBack"
+                android:layout_width="24dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="6dp"
+                android:src="@drawable/ic_arrow_back"
+                android:tag="arrowBack"
                 app:layout_constraintEnd_toStartOf="@id/pinView"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent" />
@@ -89,7 +90,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:tag="freeform_root"
-            app:layout_constraintBottom_toTopOf="@+id/bottomBar"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/topBarView" />
@@ -100,7 +101,7 @@
             android:layout_height="wrap_content"
             android:tag="veilView"
             android:visibility="gone"
-            app:layout_constraintBottom_toTopOf="@+id/bottomBar"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/topBarView">
@@ -144,88 +145,21 @@
                 android:scaleType="centerInside" />
         </LinearLayout>
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/bottomBar"
-            android:layout_width="0dp"
-            android:layout_height="@dimen/bottom_bar_height"
-            android:background="@drawable/color_background"
-            android:gravity="center"
-            android:tag="bottomBarView"
+        <View
+            android:id="@+id/leftScale"
+            android:layout_width="@dimen/resize_handle_size"
+            android:layout_height="@dimen/resize_handle_size"
+            android:tag="leftScaleView"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent">
+            app:layout_constraintStart_toStartOf="parent" />
 
-            <LinearLayout
-                android:id="@+id/leftScale"
-                android:layout_width="@dimen/scale_width"
-                android:layout_height="0dp"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:tag="leftScaleView"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent">
-
-                <View
-                    android:layout_width="4dp"
-                    android:layout_height="4dp"
-                    android:background="@drawable/bar_corners_bg"
-                    android:tag="leftScale" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/arrowBack"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:tag="arrowBack"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@+id/guideline3"
-                app:layout_constraintStart_toStartOf="@+id/guideline2"
-                app:layout_constraintTop_toTopOf="parent">
-
-                <View
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:background="@drawable/ic_arrow_back" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/rightScale"
-                android:layout_width="@dimen/scale_width"
-                android:layout_height="0dp"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:tag="rightScaleView"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent">
-
-                <View
-                    android:layout_width="4dp"
-                    android:layout_height="4dp"
-                    android:background="@drawable/bar_corners_bg"
-                    android:tag="rightScale" />
-            </LinearLayout>
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/guideline2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintGuide_percent="0.33"
-                android:tag="guideline2" />
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/guideline3"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintGuide_percent="0.67"
-                android:tag="guideline3" />
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
+        <View
+            android:id="@+id/rightScale"
+            android:layout_width="@dimen/resize_handle_size"
+            android:layout_height="@dimen/resize_handle_size"
+            android:tag="rightScaleView"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.cardview.widget.CardView>

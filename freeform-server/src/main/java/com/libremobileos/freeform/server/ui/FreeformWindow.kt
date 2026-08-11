@@ -54,7 +54,6 @@ class FreeformWindow(
     public lateinit var freeformRootView: ViewGroup
     lateinit var freeformView: TextureView
     private lateinit var topBarView: View
-    private lateinit var bottomBarView: View
     private lateinit var minimizedIconContainer: View
     private lateinit var minimizedIconImage: ImageView
     lateinit var veilView: ViewGroup
@@ -96,8 +95,8 @@ class FreeformWindow(
         private const val MINIMIZED_PEEK_OFFSET_DP = 24
         private const val INITIAL_WINDOW_SIZE_FRACTION = 0.6f
         private const val MAX_WINDOW_HEIGHT_FRACTION = 0.9f
-        // App icon, three 24dp actions, and their margins in the top bar.
-        private const val MIN_WINDOW_WIDTH_DP = 132
+        // App icon, four 24dp actions, and their margins in the top bar.
+        private const val MIN_WINDOW_WIDTH_DP = 160
     }
 
     init {
@@ -386,12 +385,10 @@ class FreeformWindow(
         freeformRootView = resourceHolder.getLayoutChildViewByTag<FrameLayout>(freeformLayout, "freeform_root") ?: return false
         veilView = resourceHolder.getLayoutChildViewByTag<FrameLayout>(freeformLayout, "veilView") ?: return false
         topBarView = resourceHolder.getLayoutChildViewByTag(freeformLayout, "topBarView") ?: return false
-        bottomBarView = resourceHolder.getLayoutChildViewByTag(freeformLayout, "bottomBarView") ?: return false
         minimizedIconContainer = resourceHolder.getLayoutChildViewByTag(freeformLayout, "minimizedIconContainer") ?: return false
         minimizedIconImage = resourceHolder.getLayoutChildViewByTag(freeformLayout, "minimizedIconImage") ?: return false
         val moveTouchListener = MoveTouchListener(this)
         topBarView.setOnTouchListener(moveTouchListener)
-        bottomBarView.setOnTouchListener(moveTouchListener)
         val appIconView = resourceHolder.getLayoutChildViewByTag<ImageView>(freeformLayout, "appIcon") ?: return false
         val packageNameView = resourceHolder.getLayoutChildViewByTag<TextView>(freeformLayout, "packageName") ?: return false
         val maximizeView = resourceHolder.getLayoutChildViewByTag<View>(freeformLayout, "maximizeView") ?: return false
@@ -468,7 +465,6 @@ class FreeformWindow(
             minimizedIconContainer.visibility = View.GONE
             freeformRootView.visibility = View.VISIBLE
             topBarView.visibility = View.VISIBLE
-            bottomBarView.visibility = View.VISIBLE
             freeformConfig.isHangUp = false
             freeformView.setOnTouchListener(this)
         } else {
@@ -477,7 +473,6 @@ class FreeformWindow(
                 notInHangUpY = windowParams.y
             }
             topBarView.visibility = View.GONE
-            bottomBarView.visibility = View.GONE
             freeformRootView.visibility = View.GONE
             minimizedIconContainer.visibility = View.VISIBLE
             minimizedIconContainer.setOnTouchListener(MinimizedIconTouchListener(this))
