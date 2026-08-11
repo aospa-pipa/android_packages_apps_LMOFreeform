@@ -170,8 +170,9 @@ class MinimizedIconTouchListener(private val window: FreeformWindow) : View.OnTo
                     hasMoved = true
                 }
                 val iconSizePx = window.windowParams.height
-                val maxY = window.defaultDisplayHeight / 2 - iconSizePx / 2
-                val minY = -(window.defaultDisplayHeight / 2 - iconSizePx / 2)
+                val displayHeight = window.getFreeformDisplayHeight()
+                val maxY = displayHeight / 2 - iconSizePx / 2
+                val minY = -(displayHeight / 2 - iconSizePx / 2)
                 window.windowParams.apply {
                     y = (startWindowY + dy).roundToInt().coerceIn(minY, maxY)
                 }

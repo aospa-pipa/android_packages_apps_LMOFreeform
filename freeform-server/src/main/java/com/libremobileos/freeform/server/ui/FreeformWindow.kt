@@ -66,15 +66,25 @@ class FreeformWindow(
     private val rotationWatcher = object : IRotationWatcher.Stub() {
         override fun onRotationChanged(rotation: Int) {
             dlog(TAG, "onRotationChanged($rotation)")
-            defaultDisplayWidth = context.resources.displayMetrics.widthPixels
-            defaultDisplayHeight = context.resources.displayMetrics.heightPixels
+            updateDefaultDisplaySize()
+            val generation = ++rotationGeneration
             if (followsDisplayOrientation) {
                 appIsLandscape = isDisplayLandscape()
             }
             resizeForOrientationChange()
-            handler.post {
-                if (freeformConfig.isHangUp) toMinimizedIcon()
-                else makeSureFreeformInScreen()
+            if (freeformConfig.isHangUp) {
+                FreeformWindowManager.runWhenHostMatchesSize(
+                    defaultDisplayWidth,
+                    defaultDisplayHeight
+                ) {
+                    handler.post {
+                        if (freeformConfig.isHangUp && rotationGeneration == generation) {
+                            toMinimizedIcon()
+                        }
+                    }
+                }
+            } else {
+                handler.post { makeSureFreeformInScreen() }
             }
         }
     }
@@ -83,6 +93,7 @@ class FreeformWindow(
     private var appIsLandscape = false
     private var followsDisplayOrientation = true
     private var hangUpAnimationRunning = false
+    private var rotationGeneration = 0
 
     companion object {
         private const val TAG = "LMOFreeform/FreeformWindow"
@@ -517,17 +528,49 @@ class FreeformWindow(
         val containerWidth = MINIMIZED_CONTAINER_WIDTH_DP.dpToPx(context).roundToInt()
         val containerHeight = MINIMIZED_CONTAINER_HEIGHT_DP.dpToPx(context).roundToInt()
         val peekOffset = MINIMIZED_PEEK_OFFSET_DP.dpToPx(context).roundToInt()
+        val displayWidth = getFreeformDisplayWidth()
+        val displayHeight = getFreeformDisplayHeight()
+        val minX = -displayWidth / 2 + containerWidth / 2
+        val maxX = displayWidth / 2 - containerWidth / 2
+        val minY = -displayHeight / 2 + containerHeight / 2
+        val maxY = displayHeight / 2 - containerHeight / 2
         minimizedIconImage.setImageDrawable(appIcon)
         windowParams.apply {
             width = containerWidth
             height = containerHeight
-            x = if (freeformConfig.inHangUpX != -1) freeformConfig.inHangUpX
-                else defaultDisplayWidth / 2 - containerWidth / 2 + peekOffset
-            y = if (freeformConfig.inHangUpY != -1) freeformConfig.inHangUpY
-                else (-defaultDisplayHeight / 2 * 0.7).roundToInt()
+            x = if (freeformConfig.inHangUpX != -1) {
+                freeformConfig.inHangUpX.coerceIn(minX, maxX + peekOffset)
+            } else {
+                maxX + peekOffset
+            }
+            y = if (freeformConfig.inHangUpY != -1) {
+                freeformConfig.inHangUpY.coerceIn(minY, maxY)
+            } else {
+                (-displayHeight / 2 * 0.7).roundToInt().coerceIn(minY, maxY)
+            }
         }
         runCatching { updateWindowLayout() }
             .onFailure { Slog.e(TAG, "$it") }
+    }
+
+    private fun getFreeformDisplayWidth(): Int {
+        context.display.getDisplayInfo(defaultDisplayInfo)
+        return defaultDisplayInfo.logicalWidth.takeIf { it > 0 }
+            ?: defaultDisplayWidth
+    }
+
+    fun getFreeformDisplayHeight(): Int {
+        context.display.getDisplayInfo(defaultDisplayInfo)
+        return defaultDisplayInfo.logicalHeight.takeIf { it > 0 }
+            ?: defaultDisplayHeight
+    }
+
+    private fun updateDefaultDisplaySize() {
+        context.display.getDisplayInfo(defaultDisplayInfo)
+        defaultDisplayWidth = defaultDisplayInfo.logicalWidth.takeIf { it > 0 }
+            ?: context.resources.displayMetrics.widthPixels
+        defaultDisplayHeight = defaultDisplayInfo.logicalHeight.takeIf { it > 0 }
+            ?: context.resources.displayMetrics.heightPixels
     }
 
     /**

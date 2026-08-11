@@ -16,6 +16,7 @@ import android.widget.FrameLayout;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FreeformWindowManager {
     private static final HashMap<String, FreeformWindow> freeformWindows = new HashMap<>(1);
@@ -119,6 +120,47 @@ public class FreeformWindowManager {
 
     public static synchronized WindowInsets getHostWindowInsets() {
         return hostView != null ? hostView.getRootWindowInsets() : null;
+    }
+
+    public static void runWhenHostMatchesSize(int expectedWidth, int expectedHeight, Runnable action) {
+        final FreeformWindowHost currentHost;
+        synchronized (FreeformWindowManager.class) {
+            currentHost = hostView;
+        }
+        if (currentHost == null) {
+            return;
+        }
+
+        final AtomicBoolean dispatched = new AtomicBoolean(false);
+        final View.OnLayoutChangeListener[] listenerHolder = new View.OnLayoutChangeListener[1];
+        final Runnable dispatch = new Runnable() {
+            @Override
+            public void run() {
+                if (!dispatched.compareAndSet(false, true)) {
+                    return;
+                }
+                currentHost.removeOnLayoutChangeListener(listenerHolder[0]);
+                currentHost.post(action);
+            }
+        };
+        listenerHolder[0] = new View.OnLayoutChangeListener() {
+            @Override
+            public void onLayoutChange(View view, int left, int top, int right, int bottom,
+                    int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                if (right - left == expectedWidth && bottom - top == expectedHeight) {
+                    dispatch.run();
+                }
+            }
+        };
+
+        if (currentHost.getWidth() == expectedWidth && currentHost.getHeight() == expectedHeight) {
+            dispatch.run();
+            return;
+        }
+        currentHost.addOnLayoutChangeListener(listenerHolder[0]);
+        if (currentHost.getWidth() == expectedWidth && currentHost.getHeight() == expectedHeight) {
+            dispatch.run();
+        }
     }
 
     public static void detachWindowView(FreeformWindow window) {
