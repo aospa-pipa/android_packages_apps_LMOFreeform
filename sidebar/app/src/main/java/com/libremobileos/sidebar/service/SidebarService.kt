@@ -37,17 +37,20 @@ class SidebarService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     private var showSideline = false
     private var isShowingSidebar = false
     private var isShowingSideline = false
+    private var isSidelineAutoHidden = false
     private var sidelinePositionX = 0
     private var sidelinePositionY = 0
     private var screenWidth = 0
     private var screenHeight = 0
     private val layoutParams = LayoutParams()
     private val handler = Handler()
+    private val hideSidelineRunnable = Runnable { hideSidelineForInactivity() }
     private val sideLineView by lazy {
         val gestureManager = MGestureManager(this@SidebarService, GestureListener(this@SidebarService))
         View(this).apply {
             background = AppCompatResources.getDrawable(this@SidebarService, R.drawable.ic_line)
             setOnTouchListener { _, event ->
+                noteSidelineInteraction()
                 gestureManager.onTouchEvent(event)
                 true
             }
@@ -80,6 +83,7 @@ class SidebarService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         private const val DEFAULT_SIDELINE_HEIGHT = 200
         private const val OFFSET_PORTRAIT = 20
         private const val OFFSET_LANDSCAPE = 0
+        private const val SIDELINE_AUTO_HIDE_DELAY_MS = 5_000L
 
         const val SLIDER_TRANSPARENCY = "slider_transparency"
         const val SLIDER_LENGTH = "slider_length"
@@ -126,8 +130,8 @@ class SidebarService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         sidebarView = SidebarView(this@SidebarService, viewModel, object : SidebarView.Callback {
             override fun onRemove() {
                 logger.d("sidebar view removed")
-                if (isShowingSidebar && showSideline) animateShowSideline()
                 isShowingSidebar = false
+                if (showSideline) animateShowSideline()
             }
         })
         isShowingSidebar = false
@@ -159,6 +163,7 @@ class SidebarService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     override fun onDestroy() {
         super.onDestroy()
         if (!serviceStarted) return
+        handler.removeCallbacks(hideSidelineRunnable)
         sharedPrefs.unregisterOnSharedPreferenceChangeListener(this)
         iActivityManager.unregisterUserSwitchObserver(userSwitchObserver)
         removeView(force = true)
@@ -178,7 +183,7 @@ class SidebarService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             SLIDER_TRANSPARENCY -> {
                 if (isShowingSideline) {
                     val transparency = sharedPrefs.getFloat(SLIDER_TRANSPARENCY, 1.0f)
-                    sideLineView.alpha = transparency
+                    sideLineView.alpha = if (isSidelineAutoHidden) 0f else transparency
                 }
             }
             SLIDER_LENGTH, SIDELINE_POSITION_X -> {
@@ -196,6 +201,7 @@ class SidebarService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
     override fun showSidebar() {
         logger.d("showSidebar")
+        handler.removeCallbacks(hideSidelineRunnable)
         sidebarView.showView()
         isShowingSidebar = true
         animateHideSideline()
@@ -310,6 +316,7 @@ class SidebarService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 windowManager.addView(sideLineView, layoutParams)
                 viewModel.registerCallbacks()
                 isShowingSideline = true
+                showSidelineForInteraction()
             }.onFailure { e ->
                 logger.e("failed to add sideline view: ", e)
             }
@@ -360,6 +367,7 @@ class SidebarService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         if (!isShowingSideline && !force) return
 
         logger.d("removeView")
+        handler.removeCallbacks(hideSidelineRunnable)
         viewModel.unregisterCallbacks()
 
         handler.post {
@@ -372,6 +380,7 @@ class SidebarService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
         sidebarView.removeView(force)
         isShowingSideline = false
+        isSidelineAutoHidden = false
     }
 
     private fun animateHideSideline() {
@@ -381,7 +390,36 @@ class SidebarService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
     private fun animateShowSideline() {
         logger.d("animateShowSideline")
-        sideLineView.animate().translationX(0f).setDuration(300).start()
+        showSidelineForInteraction()
+    }
+
+    private fun noteSidelineInteraction() {
+        if (!isShowingSideline || isShowingSidebar) return
+        showSidelineForInteraction()
+    }
+
+    private fun showSidelineForInteraction() {
+        if (!isShowingSideline || isShowingSidebar) return
+
+        handler.removeCallbacks(hideSidelineRunnable)
+        val transparency = sharedPrefs.getFloat(SLIDER_TRANSPARENCY, 1.0f)
+        sideLineView.animate().cancel()
+        sideLineView.animate()
+            .translationX(0f)
+            .alpha(transparency)
+            .setDuration(if (isSidelineAutoHidden) 150 else 300)
+            .start()
+        isSidelineAutoHidden = false
+        handler.postDelayed(hideSidelineRunnable, SIDELINE_AUTO_HIDE_DELAY_MS)
+    }
+
+    private fun hideSidelineForInactivity() {
+        if (!showSideline || !isShowingSideline || isShowingSidebar) return
+
+        logger.d("hideSidelineForInactivity")
+        isSidelineAutoHidden = true
+        sideLineView.animate().cancel()
+        sideLineView.animate().alpha(0f).setDuration(300).start()
     }
 
     private fun setIntSp(name: String, value: Int) {
